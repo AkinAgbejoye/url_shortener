@@ -1,0 +1,28 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: url-shortener-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: url_shortener
+      MYSQL_USER: url_user
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+  redis:
+    image: redis:7-alpine
+    container_name: url-shortener-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+volumes:
+  mysql_data:
