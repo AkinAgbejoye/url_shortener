@@ -7,6 +7,7 @@ use App\Models\Url;
 use App\Services\Base62Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class UrlController extends Controller
 {
@@ -106,17 +107,22 @@ class UrlController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $url = Url::create([
-            'long_url' => $validated['long_url'],
-            'short_code' => 'TEMP',
-            'short_url' => 'TEMP',
-        ]);
+        $url = DB::transaction(function () use ($validated, $base62) {
 
-        $shortCode = $base62->encode($url->id);
-
-        $url->update([
-            'short_code' => $shortCode,
-        ]);
+            $url = Url::create([
+                'long_url' => $validated['long_url'],
+                'short_code' => 'TEMP',
+                'short_url' => 'TEMP',
+            ]);
+        
+            $shortCode = $base62->encode($url->id);
+        
+            $url->update([
+                'short_code' => $shortCode,
+            ]);
+        
+            return $url->fresh();
+        });
 
         /*
         |--------------------------------------------------------------------------
