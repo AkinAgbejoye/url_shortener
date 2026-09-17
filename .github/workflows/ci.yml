@@ -12,6 +12,9 @@ jobs:
   backend:
     name: PHP tests and quality
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
     steps:
       - uses: actions/checkout@v4
       - name: Set up PHP
