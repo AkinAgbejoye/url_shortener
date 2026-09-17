@@ -1,60 +1,113 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel URL Shortener
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A URL-shortening API built with Laravel 12. It generates deterministic Base62 short codes, stores URLs in a relational database, and uses a Redis-compatible Laravel cache store to speed up redirects.
 
-## About Laravel
+## Architecture
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Database:** source of truth for URLs and idempotency records.
+- **Cache:** optional acceleration layer for redirects. Cache errors are logged and requests fall back to the database.
+- **Base62:** converts each database ID into a compact, unique short code.
+- **Idempotency:** repeated requests with the same `Idempotency-Key` and payload replay the original response. Reusing a key with a different URL returns `409 Conflict`.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.2 or newer
+- Composer 2
+- Node.js 22 and npm
+- SQLite for the simplest local setup, or MySQL for production-like usage
+- Redis when using `CACHE_STORE=redis`
 
-## Learning Laravel
+## Local setup
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```bash
+git clone https://github.com/AkinAgbejoye/url_shortener.git
+cd url_shortener
+composer install
+npm ci
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+For a dependency-free local cache, set `CACHE_STORE=array` in `.env`. Then initialize and run the application:
 
-## Laravel Sponsors
+```bash
+php artisan migrate
+npm run build
+php artisan serve
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+The API is available at `http://localhost:8000`.
 
-### Premium Partners
+## Docker setup
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Create the application environment before building because the application image reads it at runtime:
 
-## Contributing
+```bash
+cp .env.example .env
+php artisan key:generate
+docker compose up --build -d
+docker compose exec app1 php artisan migrate --force
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+The Nginx load balancer listens on `http://localhost:8080` and distributes requests across three application containers. MySQL is exposed on port `3307` and Redis on `6379` for local inspection.
 
-## Code of Conduct
+## API
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Create a short URL
 
-## Security Vulnerabilities
+`POST /api/v1/urls`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+curl -X POST http://localhost:8000/api/v1/urls \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: homepage-001' \
+  -d '{"long_url":"https://example.com/a/long/path"}'
+```
+
+Successful creation returns `201 Created`:
+
+```json
+{
+  "id": 1,
+  "short_code": "1",
+  "short_url": "http://localhost:8000/1",
+  "long_url": "https://example.com/a/long/path"
+}
+```
+
+Repeating the request with the same idempotency key and URL returns the stored response with `200 OK`. Using that key for another URL returns `409 Conflict`. The header is optional and has a maximum length of 255 characters.
+
+### Follow a short URL
+
+`GET /{shortCode}` redirects to the original URL. Unknown codes return `404 Not Found`.
+
+### Health check
+
+`GET /api/health` returns `{"status":"ok"}`. Laravel's framework health endpoint is also available at `GET /up`.
+
+## Quality checks
+
+```bash
+composer test
+vendor/bin/pint --test
+composer audit
+npm audit --audit-level=high
+npm run build
+```
+
+Tests use an in-memory SQLite database and cache, so MySQL and Redis are not required. They cover creation, validation, idempotency, cache hits, database fallback, cache failure logging, redirects, and Base62 conversion.
+
+GitHub Actions runs tests with a 70% minimum coverage threshold, style checks, dependency audits, and the frontend build on every pull request and push to `main`. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly.
+
+## Operational notes
+
+- Configure a persistent database and `CACHE_STORE=redis` in production.
+- Keep `APP_DEBUG=false` and provide a unique `APP_KEY`.
+- The creation endpoint is limited to 10 requests per minute per client.
+- Cache entries expire after 24 hours and are rebuilt from the database on demand.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# url_shortener
+This project is open-sourced under the [MIT License](https://opensource.org/licenses/MIT).
