@@ -8,6 +8,7 @@ if (form) {
     const buttonSpinner = button.querySelector('[data-button-spinner]');
     const inputShell = form.querySelector('[data-input-shell]');
     const inputError = form.querySelector('#long-url-error');
+    const status = document.querySelector('#shortener-status');
     const result = document.querySelector('#short-url-result');
 
     const setLoading = (loading) => {
@@ -16,6 +17,11 @@ if (form) {
         buttonLabel.textContent = loading ? 'Shortening…' : 'Shorten URL';
         buttonArrow.classList.toggle('hidden', loading);
         buttonSpinner.classList.toggle('hidden', !loading);
+        form.setAttribute('aria-busy', String(loading));
+
+        if (loading) {
+            status.textContent = 'Shortening your URL. Please wait.';
+        }
     };
 
     const clearFieldError = () => {
@@ -134,6 +140,7 @@ if (form) {
         resetButton.addEventListener('click', () => {
             form.reset();
             clearFieldError();
+            status.textContent = '';
             result.replaceChildren();
             result.hidden = true;
             input.focus();
@@ -143,6 +150,7 @@ if (form) {
         card.append(eyebrow, link, original, actions);
         result.replaceChildren(card);
         result.hidden = false;
+        status.textContent = 'Short URL created successfully.';
         result.focus();
     };
 
@@ -153,6 +161,7 @@ if (form) {
         message.textContent = text;
         result.replaceChildren(message);
         result.hidden = false;
+        result.focus();
     };
 
     const readJson = async (response) => {

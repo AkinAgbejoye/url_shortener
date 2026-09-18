@@ -12,9 +12,12 @@
         @endif
     </head>
     <body class="min-h-screen bg-slate-950 font-sans text-white antialiased">
+        <a href="#main-content" class="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg transition focus:translate-y-0 focus:outline-2 focus:outline-offset-2 focus:outline-blue-400">
+            Skip to main content
+        </a>
         <div class="relative isolate min-h-screen overflow-hidden">
-            <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.2),transparent_62%)]"></div>
-            <div class="pointer-events-none absolute -left-36 top-64 -z-10 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl"></div>
+            <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.2),transparent_62%)]" aria-hidden="true"></div>
+            <div class="pointer-events-none absolute -left-36 top-64 -z-10 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" aria-hidden="true"></div>
 
             <header class="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 sm:px-8 lg:px-10">
                 <a href="/" class="inline-flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400" aria-label="Shortly home">
@@ -26,10 +29,10 @@
                     </span>
                     <span class="text-xl font-bold tracking-tight">Shortly</span>
                 </a>
-                <a href="https://github.com/AkinAgbejoye/url_shortener" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400">View on GitHub</a>
+                <a href="https://github.com/AkinAgbejoye/url_shortener" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400" rel="noreferrer">View on GitHub</a>
             </header>
 
-            <main class="mx-auto flex w-full max-w-6xl flex-col items-center px-5 pb-16 pt-14 text-center sm:px-8 sm:pt-20 lg:px-10 lg:pt-24">
+            <main id="main-content" class="mx-auto flex w-full max-w-6xl flex-col items-center px-5 pb-16 pt-14 text-center sm:px-8 sm:pt-20 lg:px-10 lg:pt-24" tabindex="-1">
                 <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-sm font-medium text-blue-200">
                     <span class="size-1.5 rounded-full bg-cyan-300" aria-hidden="true"></span>
                     Fast, reliable, and easy to use
@@ -42,7 +45,7 @@
 
                 <section class="mt-10 w-full max-w-3xl" aria-labelledby="shortener-heading">
                     <h2 id="shortener-heading" class="sr-only">Shorten a URL</h2>
-                    <form id="shortener-form" class="rounded-2xl border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-black/20 backdrop-blur sm:flex sm:items-end sm:gap-3 sm:p-4" data-endpoint="/api/v1/urls" novalidate>
+                    <form id="shortener-form" class="rounded-2xl border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-black/20 backdrop-blur sm:flex sm:items-end sm:gap-3 sm:p-4" data-endpoint="/api/v1/urls" aria-describedby="url-requirements" novalidate>
                         <div class="flex-1 text-left">
                             <label for="long-url" class="sr-only">Long URL</label>
                             <div data-input-shell class="flex items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
@@ -63,6 +66,7 @@
                             </svg>
                         </button>
                     </form>
+                    <p id="shortener-status" class="sr-only" role="status" aria-live="polite"></p>
                     <p id="url-requirements" class="mt-4 text-sm text-slate-400">Only HTTP and HTTPS links are supported.</p>
                     <div id="short-url-result" class="mt-8 outline-none" aria-live="polite" aria-atomic="true" tabindex="-1" hidden></div>
                 </section>
