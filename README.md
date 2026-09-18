@@ -94,11 +94,12 @@ composer test
 composer test:coverage
 vendor/bin/pint --test
 composer audit
+npm test
 npm audit --audit-level=high
 npm run build
 ```
 
-Tests use an in-memory SQLite database and cache, so MySQL and Redis are not required. They cover creation, validation, idempotency, cache hits, database fallback, cache failure logging, redirects, and Base62 conversion. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug.
+Backend tests use an in-memory SQLite database and cache, so MySQL and Redis are not required. Frontend tests use Vitest and jsdom. Together they cover creation, validation, idempotency, cache behavior, redirects, Base62 conversion, form submission, errors, clipboard behavior, and form reset. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug.
 
 GitHub Actions runs tests with a 70% minimum coverage threshold, style checks, dependency audits, and the frontend build on every pull request and push to `main`. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly.
 

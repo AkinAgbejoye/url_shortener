@@ -14,6 +14,7 @@ Run the same checks used by CI before opening a pull request:
 composer test:coverage
 vendor/bin/pint --test
 composer audit
+npm test
 npm audit --audit-level=high
 npm run build
 ```

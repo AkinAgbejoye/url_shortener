@@ -48,5 +48,7 @@ jobs:
         run: npm ci
       - name: Audit npm dependencies
         run: npm audit --audit-level=high
+      - name: Run frontend tests
+        run: npm test
       - name: Build frontend assets
         run: npm run build

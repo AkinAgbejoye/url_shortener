@@ -1,2 +1,4 @@
 import './bootstrap';
-import './shortener';
+import { initShortener } from './shortener';
+
+initShortener();

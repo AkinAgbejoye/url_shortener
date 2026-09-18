@@ -1,6 +1,10 @@
-const form = document.querySelector('#shortener-form');
+export const initShortener = (root = document) => {
+    const form = root.querySelector('#shortener-form');
 
-if (form) {
+    if (!form) {
+        return;
+    }
+
     const input = form.querySelector('#long-url');
     const button = form.querySelector('#shorten-button');
     const buttonLabel = button.querySelector('[data-button-label]');
@@ -9,7 +13,7 @@ if (form) {
     const inputShell = form.querySelector('[data-input-shell]');
     const inputError = form.querySelector('#long-url-error');
     const status = document.querySelector('#shortener-status');
-    const result = document.querySelector('#short-url-result');
+    const result = root.querySelector('#short-url-result');
 
     const setLoading = (loading) => {
         button.disabled = loading;
@@ -71,11 +75,11 @@ if (form) {
             return;
         }
 
-        const temporaryInput = document.createElement('textarea');
+        const temporaryInput = root.createElement('textarea');
         temporaryInput.value = text;
         temporaryInput.setAttribute('readonly', '');
         temporaryInput.className = 'fixed -left-[9999px] top-0';
-        document.body.append(temporaryInput);
+        root.body.append(temporaryInput);
         temporaryInput.select();
 
         const copied = document.execCommand('copy');
@@ -87,29 +91,29 @@ if (form) {
     };
 
     const showResult = ({ long_url: longUrl, short_url: shortUrl }) => {
-        const card = document.createElement('div');
+        const card = root.createElement('div');
         card.className = 'rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-left shadow-xl shadow-black/10 sm:p-6';
 
-        const eyebrow = document.createElement('p');
+        const eyebrow = root.createElement('p');
         eyebrow.className = 'text-sm font-semibold text-emerald-300';
         eyebrow.textContent = 'Your short link is ready';
 
-        const link = document.createElement('a');
+        const link = root.createElement('a');
         link.className = 'mt-2 block break-all text-xl font-semibold text-white underline decoration-emerald-400/50 underline-offset-4 hover:decoration-emerald-300 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-300';
         link.href = shortUrl;
         link.target = '_blank';
         link.rel = 'noreferrer';
         link.textContent = shortUrl;
 
-        const original = document.createElement('p');
+        const original = root.createElement('p');
         original.className = 'mt-3 truncate text-sm text-slate-400';
         original.title = longUrl;
         original.textContent = `From: ${longUrl}`;
 
-        const actions = document.createElement('div');
+        const actions = root.createElement('div');
         actions.className = 'mt-5 flex flex-col gap-2 sm:flex-row';
 
-        const copyButton = document.createElement('button');
+        const copyButton = root.createElement('button');
         copyButton.type = 'button';
         copyButton.className = 'inline-flex items-center justify-center rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
         copyButton.textContent = 'Copy short link';
@@ -126,14 +130,14 @@ if (form) {
             }
         });
 
-        const openLink = document.createElement('a');
+        const openLink = root.createElement('a');
         openLink.className = 'inline-flex items-center justify-center rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
         openLink.href = shortUrl;
         openLink.target = '_blank';
         openLink.rel = 'noreferrer';
         openLink.textContent = 'Open link';
 
-        const resetButton = document.createElement('button');
+        const resetButton = root.createElement('button');
         resetButton.type = 'button';
         resetButton.className = 'inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 sm:ml-auto';
         resetButton.textContent = 'Shorten another';
@@ -155,7 +159,7 @@ if (form) {
     };
 
     const showError = (text) => {
-        const message = document.createElement('p');
+        const message = root.createElement('p');
         message.className = 'rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200';
         message.setAttribute('role', 'alert');
         message.textContent = text;
@@ -234,4 +238,4 @@ if (form) {
             setLoading(false);
         }
     });
-}
+};
