@@ -15,4 +15,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Request correlation IDs and structured JSON application logs.
 - Browser-local recent link history with copy, open, and clear actions.
 - System-aware light and dark themes with a persistent manual preference.
+- Playwright coverage for the complete browser shortening and redirect journey.
 - Automated tests, coverage enforcement, style checks, dependency audits, and frontend builds in CI.

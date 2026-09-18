@@ -95,11 +95,12 @@ composer test:coverage
 vendor/bin/pint --test
 composer audit
 npm test
+npm run test:e2e
 npm audit --audit-level=high
 npm run build
 ```
 
-Backend tests use an in-memory SQLite database and cache, so MySQL and Redis are not required. Frontend tests use Vitest and jsdom. Together they cover creation, validation, idempotency, cache behavior, redirects, Base62 conversion, form submission, errors, clipboard behavior, and form reset. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug.
+Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, validation, idempotency, cache behavior, redirects, Base62 conversion, form submission, errors, clipboard behavior, history, themes, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug.
 
 GitHub Actions runs tests with a 70% minimum coverage threshold, style checks, dependency audits, and the frontend build on every pull request and push to `main`. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly.
 

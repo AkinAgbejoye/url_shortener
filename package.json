@@ -5,9 +5,12 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:e2e:prepare": "touch database/e2e.sqlite && APP_ENV=testing APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= DB_CONNECTION=sqlite DB_DATABASE=database/e2e.sqlite CACHE_STORE=array SESSION_DRIVER=file QUEUE_CONNECTION=sync php artisan migrate --force",
+        "test:e2e": "npm run build && npm run test:e2e:prepare && playwright test"
     },
     "devDependencies": {
+        "@playwright/test": "^1.63.0",
         "@tailwindcss/vite": "^4.0.0",
         "@testing-library/dom": "^10.4.2",
         "axios": "^1.11.0",

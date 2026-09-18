@@ -15,6 +15,7 @@ composer test:coverage
 vendor/bin/pint --test
 composer audit
 npm test
+npm run test:e2e
 npm audit --audit-level=high
 npm run build
 ```
