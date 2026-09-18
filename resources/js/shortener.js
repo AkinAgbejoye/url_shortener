@@ -1,4 +1,5 @@
 export const initShortener = (root = document) => {
+    const historyKey = 'shortly.recent-links';
     const form = root.querySelector('#shortener-form');
 
     if (!form) {
@@ -12,8 +13,12 @@ export const initShortener = (root = document) => {
     const buttonSpinner = button.querySelector('[data-button-spinner]');
     const inputShell = form.querySelector('[data-input-shell]');
     const inputError = form.querySelector('#long-url-error');
-    const status = document.querySelector('#shortener-status');
+    const status = root.querySelector('#shortener-status');
     const result = root.querySelector('#short-url-result');
+    const history = root.querySelector('#recent-links');
+    const historyList = root.querySelector('#recent-links-list');
+    const clearHistoryButton = root.querySelector('#clear-history');
+    const storage = root.defaultView?.localStorage;
 
     const setLoading = (loading) => {
         button.disabled = loading;
@@ -90,6 +95,100 @@ export const initShortener = (root = document) => {
         }
     };
 
+    const readHistory = () => {
+        try {
+            const saved = JSON.parse(storage?.getItem(historyKey) ?? '[]');
+
+            if (!Array.isArray(saved)) {
+                return [];
+            }
+
+            return saved.filter((link) => {
+                if (typeof link?.long_url !== 'string' || typeof link?.short_url !== 'string' || typeof link?.created_at !== 'string') {
+                    return false;
+                }
+
+                try {
+                    return ['http:', 'https:'].includes(new URL(link.short_url).protocol)
+                        && !Number.isNaN(new Date(link.created_at).getTime());
+                } catch {
+                    return false;
+                }
+            });
+        } catch {
+            return [];
+        }
+    };
+
+    const writeHistory = (links) => {
+        try {
+            storage?.setItem(historyKey, JSON.stringify(links));
+        } catch {
+            // Browsers may disable storage in private or restricted contexts.
+        }
+    };
+
+    const makeHistoryItem = ({ long_url: longUrl, short_url: shortUrl, created_at: createdAt }) => {
+        const item = root.createElement('li');
+        item.className = 'rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:flex sm:items-center sm:gap-4';
+
+        const details = root.createElement('div');
+        details.className = 'min-w-0 flex-1';
+
+        const link = root.createElement('a');
+        link.className = 'block truncate font-semibold text-blue-300 hover:text-blue-200 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400';
+        link.href = shortUrl;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.textContent = shortUrl;
+
+        const original = root.createElement('p');
+        original.className = 'mt-1 truncate text-sm text-slate-400';
+        original.title = longUrl;
+        original.textContent = longUrl;
+
+        const time = root.createElement('p');
+        time.className = 'mt-1 text-xs text-slate-500';
+        time.textContent = new Date(createdAt).toLocaleString();
+
+        const copyButton = root.createElement('button');
+        copyButton.type = 'button';
+        copyButton.className = 'mt-3 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 sm:mt-0';
+        copyButton.textContent = 'Copy';
+        copyButton.setAttribute('aria-label', `Copy short link ${shortUrl}`);
+        copyButton.addEventListener('click', async () => {
+            try {
+                await copyText(shortUrl);
+                copyButton.textContent = 'Copied!';
+            } catch (error) {
+                console.error(error);
+                copyButton.textContent = 'Unable to copy';
+            }
+        });
+
+        details.append(link, original, time);
+        item.append(details, copyButton);
+
+        return item;
+    };
+
+    const renderHistory = () => {
+        if (!history || !historyList) {
+            return;
+        }
+
+        const links = readHistory();
+        historyList.replaceChildren(...links.map(makeHistoryItem));
+        history.hidden = links.length === 0;
+    };
+
+    const rememberLink = (link) => {
+        const links = readHistory().filter(({ short_url: shortUrl }) => shortUrl !== link.short_url);
+        links.unshift({ ...link, created_at: new Date().toISOString() });
+        writeHistory(links.slice(0, 5));
+        renderHistory();
+    };
+
     const showResult = ({ long_url: longUrl, short_url: shortUrl }) => {
         const card = root.createElement('div');
         card.className = 'rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-left shadow-xl shadow-black/10 sm:p-6';
@@ -155,6 +254,7 @@ export const initShortener = (root = document) => {
         result.replaceChildren(card);
         result.hidden = false;
         status.textContent = 'Short URL created successfully.';
+        rememberLink({ long_url: longUrl, short_url: shortUrl });
         result.focus();
     };
 
@@ -200,6 +300,18 @@ export const initShortener = (root = document) => {
     };
 
     input.addEventListener('input', clearFieldError);
+    clearHistoryButton?.addEventListener('click', () => {
+        try {
+            storage?.removeItem(historyKey);
+        } catch {
+            // The UI can still clear even when storage access is restricted.
+        }
+
+        renderHistory();
+        status.textContent = 'Recent link history cleared.';
+    });
+
+    renderHistory();
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();

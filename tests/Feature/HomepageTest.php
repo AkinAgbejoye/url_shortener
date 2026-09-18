@@ -22,6 +22,8 @@ class HomepageTest extends TestCase
             ->assertSee('role="status"', false)
             ->assertSee('Shorten URL')
             ->assertSee('id="short-url-result"', false)
+            ->assertSee('id="recent-links"', false)
+            ->assertSee('Clear history')
             ->assertSee('aria-live="polite"', false);
     }
 }

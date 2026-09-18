@@ -69,6 +69,14 @@
                     <p id="shortener-status" class="sr-only" role="status" aria-live="polite"></p>
                     <p id="url-requirements" class="mt-4 text-sm text-slate-400">Only HTTP and HTTPS links are supported.</p>
                     <div id="short-url-result" class="mt-8 outline-none" aria-live="polite" aria-atomic="true" tabindex="-1" hidden></div>
+
+                    <section id="recent-links" class="mt-10 text-left" aria-labelledby="recent-links-heading" hidden>
+                        <div class="flex items-center justify-between gap-4">
+                            <h2 id="recent-links-heading" class="text-lg font-semibold text-white">Recent links</h2>
+                            <button id="clear-history" type="button" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400">Clear history</button>
+                        </div>
+                        <ul id="recent-links-list" class="mt-3 space-y-3"></ul>
+                    </section>
                 </section>
 
                 <div class="mt-16 grid w-full max-w-3xl gap-4 text-left sm:grid-cols-3">

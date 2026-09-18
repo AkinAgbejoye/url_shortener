@@ -16,6 +16,10 @@ const page = () => `
     </form>
     <p id="shortener-status"></p>
     <div id="short-url-result" hidden></div>
+    <section id="recent-links" hidden>
+        <button id="clear-history" type="button">Clear history</button>
+        <ul id="recent-links-list"></ul>
+    </section>
 `;
 
 const response = (body, status = 201) => ({
@@ -27,6 +31,7 @@ const response = (body, status = 201) => ({
 describe('URL shortener form', () => {
     beforeEach(() => {
         document.body.innerHTML = page();
+        localStorage.clear();
         global.fetch = vi.fn();
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,
@@ -47,7 +52,7 @@ describe('URL shortener form', () => {
 
         expect(getByRole(document.body, 'button', { name: 'Shortening…' }).disabled).toBe(true);
 
-        await waitFor(() => expect(getByRole(document.body, 'link', { name: 'http://localhost/1' })).toBeTruthy());
+        await waitFor(() => expect(getByRole(document.querySelector('#short-url-result'), 'link', { name: 'http://localhost/1' })).toBeTruthy());
         expect(fetch).toHaveBeenCalledWith('/api/v1/urls', expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ long_url: 'https://example.com/a-long-path' }),
@@ -106,5 +111,27 @@ describe('URL shortener form', () => {
         expect(input.value).toBe('');
         expect(document.querySelector('#short-url-result').hidden).toBe(true);
         expect(document.activeElement).toBe(input);
+    });
+
+    it('persists recent links and clears the history', async () => {
+        fetch.mockResolvedValue(response({
+            long_url: 'https://example.com/persisted',
+            short_url: 'http://localhost/3',
+        }));
+        document.querySelector('#long-url').value = 'https://example.com/persisted';
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() => expect(document.querySelector('#recent-links').hidden).toBe(false));
+        expect(JSON.parse(localStorage.getItem('shortly.recent-links'))).toEqual([
+            expect.objectContaining({
+                long_url: 'https://example.com/persisted',
+                short_url: 'http://localhost/3',
+            }),
+        ]);
+        expect(getByRole(document.querySelector('#recent-links'), 'link', { name: 'http://localhost/3' })).toBeTruthy();
+
+        fireEvent.click(getByRole(document.body, 'button', { name: 'Clear history' }));
+        expect(localStorage.getItem('shortly.recent-links')).toBeNull();
+        expect(document.querySelector('#recent-links').hidden).toBe(true);
     });
 });
