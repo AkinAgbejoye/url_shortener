@@ -6,6 +6,8 @@ if (form) {
     const buttonLabel = button.querySelector('[data-button-label]');
     const buttonArrow = button.querySelector('[data-button-arrow]');
     const buttonSpinner = button.querySelector('[data-button-spinner]');
+    const inputShell = form.querySelector('[data-input-shell]');
+    const inputError = form.querySelector('#long-url-error');
     const result = document.querySelector('#short-url-result');
 
     const setLoading = (loading) => {
@@ -14,6 +16,47 @@ if (form) {
         buttonLabel.textContent = loading ? 'Shortening…' : 'Shorten URL';
         buttonArrow.classList.toggle('hidden', loading);
         buttonSpinner.classList.toggle('hidden', !loading);
+    };
+
+    const clearFieldError = () => {
+        input.removeAttribute('aria-invalid');
+        inputError.textContent = '';
+        inputError.classList.add('hidden');
+        inputShell.classList.remove('ring-red-400');
+        inputShell.classList.add('ring-slate-200');
+    };
+
+    const showFieldError = (message) => {
+        input.setAttribute('aria-invalid', 'true');
+        inputError.textContent = message;
+        inputError.classList.remove('hidden');
+        inputShell.classList.remove('ring-slate-200');
+        inputShell.classList.add('ring-red-400');
+        input.focus();
+    };
+
+    const validateUrl = () => {
+        const value = input.value.trim();
+
+        if (!value) {
+            return 'Enter a URL to shorten.';
+        }
+
+        if (value.length > 2048) {
+            return 'The URL must be 2,048 characters or fewer.';
+        }
+
+        try {
+            const url = new URL(value);
+
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                return 'Use a URL beginning with http:// or https://.';
+            }
+        } catch {
+            return 'Enter a complete URL, such as https://example.com.';
+        }
+
+        return null;
     };
 
     const showResult = ({ long_url: longUrl, short_url: shortUrl }) => {
@@ -41,18 +84,56 @@ if (form) {
         result.hidden = false;
     };
 
-    const showError = () => {
+    const showError = (text) => {
         const message = document.createElement('p');
         message.className = 'rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200';
-        message.textContent = 'We could not shorten that URL. Please try again.';
+        message.setAttribute('role', 'alert');
+        message.textContent = text;
         result.replaceChildren(message);
         result.hidden = false;
     };
 
+    const readJson = async (response) => {
+        try {
+            return await response.json();
+        } catch {
+            return {};
+        }
+    };
+
+    const handleFailedResponse = async (response) => {
+        const payload = await readJson(response);
+
+        if (response.status === 422) {
+            showFieldError(payload.errors?.long_url?.[0] ?? 'Check the URL and try again.');
+            return;
+        }
+
+        if (response.status === 429) {
+            showError('You have shortened too many links. Wait a minute and try again.');
+            return;
+        }
+
+        if (response.status === 409) {
+            showError(payload.message ?? 'This request conflicts with an earlier request.');
+            return;
+        }
+
+        showError(response.status >= 500
+            ? 'The shortening service is temporarily unavailable. Please try again shortly.'
+            : (payload.message ?? 'We could not shorten that URL. Please try again.'));
+    };
+
+    input.addEventListener('input', clearFieldError);
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        if (!form.reportValidity()) {
+        clearFieldError();
+        const validationError = validateUrl();
+
+        if (validationError) {
+            showFieldError(validationError);
             return;
         }
 
@@ -70,13 +151,14 @@ if (form) {
             });
 
             if (!response.ok) {
-                throw new Error(`Shortening failed with status ${response.status}`);
+                await handleFailedResponse(response);
+                return;
             }
 
             showResult(await response.json());
         } catch (error) {
             console.error(error);
-            showError();
+            showError('Unable to reach the service. Check your connection and try again.');
         } finally {
             setLoading(false);
         }

@@ -144,4 +144,19 @@ class UrlControllerTest extends TestCase
             ->assertOk()
             ->assertExactJson(['status' => 'ok']);
     }
+
+    public function test_url_creation_is_rate_limited(): void
+    {
+        Cache::clear();
+
+        foreach (range(1, 10) as $attempt) {
+            $this->postJson('/api/v1/urls', [
+                'long_url' => "https://example.com/{$attempt}",
+            ])->assertCreated();
+        }
+
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/limited',
+        ])->assertTooManyRequests();
+    }
 }

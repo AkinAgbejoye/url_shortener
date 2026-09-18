@@ -42,16 +42,17 @@
 
                 <section class="mt-10 w-full max-w-3xl" aria-labelledby="shortener-heading">
                     <h2 id="shortener-heading" class="sr-only">Shorten a URL</h2>
-                    <form id="shortener-form" class="rounded-2xl border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-black/20 backdrop-blur sm:flex sm:items-end sm:gap-3 sm:p-4" data-endpoint="/api/v1/urls">
+                    <form id="shortener-form" class="rounded-2xl border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-black/20 backdrop-blur sm:flex sm:items-end sm:gap-3 sm:p-4" data-endpoint="/api/v1/urls" novalidate>
                         <div class="flex-1 text-left">
                             <label for="long-url" class="sr-only">Long URL</label>
-                            <div class="flex items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
+                            <div data-input-shell class="flex items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
                                 <svg class="size-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <circle cx="12" cy="12" r="10" />
                                     <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
                                 </svg>
-                                <input id="long-url" name="long_url" type="url" inputmode="url" autocomplete="url" placeholder="Paste your long URL here" class="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-950 outline-none placeholder:text-slate-400" required>
+                                <input id="long-url" name="long_url" type="url" inputmode="url" autocomplete="url" placeholder="Paste your long URL here" class="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-950 outline-none placeholder:text-slate-400" aria-describedby="url-requirements long-url-error" required>
                             </div>
+                            <p id="long-url-error" class="mt-2 hidden text-sm font-medium text-red-300" role="alert"></p>
                         </div>
                         <button id="shorten-button" type="submit" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 disabled:cursor-wait disabled:opacity-70 sm:mt-0 sm:w-auto">
                             <span data-button-label>Shorten URL</span>
@@ -62,7 +63,7 @@
                             </svg>
                         </button>
                     </form>
-                    <p class="mt-4 text-sm text-slate-400">Only HTTP and HTTPS links are supported.</p>
+                    <p id="url-requirements" class="mt-4 text-sm text-slate-400">Only HTTP and HTTPS links are supported.</p>
                     <div id="short-url-result" class="mt-8" aria-live="polite" aria-atomic="true" hidden></div>
                 </section>
 
