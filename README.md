@@ -112,3 +112,5 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, style checks, d
 ## License
 
 This project is open-sourced under the [MIT License](https://opensource.org/licenses/MIT).
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, quality checks, and commit guidance. Release-facing changes are tracked in [CHANGELOG.md](CHANGELOG.md).
