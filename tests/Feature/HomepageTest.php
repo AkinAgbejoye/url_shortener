@@ -12,6 +12,8 @@ class HomepageTest extends TestCase
             ->assertOk()
             ->assertSee('Shortly')
             ->assertSee('Skip to main content')
+            ->assertSee('id="theme-toggle"', false)
+            ->assertSee('Switch to dark theme')
             ->assertSee('Turn long links into')
             ->assertSee('id="main-content"', false)
             ->assertSee('id="shortener-form"', false)

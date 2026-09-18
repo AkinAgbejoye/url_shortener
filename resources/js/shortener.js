@@ -130,7 +130,7 @@ export const initShortener = (root = document) => {
 
     const makeHistoryItem = ({ long_url: longUrl, short_url: shortUrl, created_at: createdAt }) => {
         const item = root.createElement('li');
-        item.className = 'rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:flex sm:items-center sm:gap-4';
+        item.className = 'rounded-xl border border-slate-200 bg-white/70 p-4 sm:flex sm:items-center sm:gap-4 dark:border-white/10 dark:bg-white/[0.04]';
 
         const details = root.createElement('div');
         details.className = 'min-w-0 flex-1';
@@ -143,7 +143,7 @@ export const initShortener = (root = document) => {
         link.textContent = shortUrl;
 
         const original = root.createElement('p');
-        original.className = 'mt-1 truncate text-sm text-slate-400';
+        original.className = 'mt-1 truncate text-sm text-slate-600 dark:text-slate-400';
         original.title = longUrl;
         original.textContent = longUrl;
 
@@ -153,7 +153,7 @@ export const initShortener = (root = document) => {
 
         const copyButton = root.createElement('button');
         copyButton.type = 'button';
-        copyButton.className = 'mt-3 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 sm:mt-0';
+        copyButton.className = 'mt-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 sm:mt-0 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white';
         copyButton.textContent = 'Copy';
         copyButton.setAttribute('aria-label', `Copy short link ${shortUrl}`);
         copyButton.addEventListener('click', async () => {
@@ -194,18 +194,18 @@ export const initShortener = (root = document) => {
         card.className = 'rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-left shadow-xl shadow-black/10 sm:p-6';
 
         const eyebrow = root.createElement('p');
-        eyebrow.className = 'text-sm font-semibold text-emerald-300';
+        eyebrow.className = 'text-sm font-semibold text-emerald-700 dark:text-emerald-300';
         eyebrow.textContent = 'Your short link is ready';
 
         const link = root.createElement('a');
-        link.className = 'mt-2 block break-all text-xl font-semibold text-white underline decoration-emerald-400/50 underline-offset-4 hover:decoration-emerald-300 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-300';
+        link.className = 'mt-2 block break-all text-xl font-semibold text-slate-950 underline decoration-emerald-500/50 underline-offset-4 hover:decoration-emerald-600 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-500 dark:text-white dark:decoration-emerald-400/50 dark:hover:decoration-emerald-300';
         link.href = shortUrl;
         link.target = '_blank';
         link.rel = 'noreferrer';
         link.textContent = shortUrl;
 
         const original = root.createElement('p');
-        original.className = 'mt-3 truncate text-sm text-slate-400';
+        original.className = 'mt-3 truncate text-sm text-slate-600 dark:text-slate-400';
         original.title = longUrl;
         original.textContent = `From: ${longUrl}`;
 
@@ -230,7 +230,7 @@ export const initShortener = (root = document) => {
         });
 
         const openLink = root.createElement('a');
-        openLink.className = 'inline-flex items-center justify-center rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
+        openLink.className = 'inline-flex items-center justify-center rounded-lg border border-emerald-700/20 px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-emerald-400/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 dark:border-white/15 dark:text-white dark:hover:bg-white/10';
         openLink.href = shortUrl;
         openLink.target = '_blank';
         openLink.rel = 'noreferrer';
@@ -238,7 +238,7 @@ export const initShortener = (root = document) => {
 
         const resetButton = root.createElement('button');
         resetButton.type = 'button';
-        resetButton.className = 'inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 sm:ml-auto';
+        resetButton.className = 'inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-200 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 sm:ml-auto dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white';
         resetButton.textContent = 'Shorten another';
         resetButton.addEventListener('click', () => {
             form.reset();

@@ -14,4 +14,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - API and framework health-check endpoints.
 - Request correlation IDs and structured JSON application logs.
 - Browser-local recent link history with copy, open, and clear actions.
+- System-aware light and dark themes with a persistent manual preference.
 - Automated tests, coverage enforcement, style checks, dependency audits, and frontend builds in CI.
