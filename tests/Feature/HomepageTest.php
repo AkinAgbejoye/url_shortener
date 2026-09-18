@@ -12,7 +12,10 @@ class HomepageTest extends TestCase
             ->assertOk()
             ->assertSee('Shortly')
             ->assertSee('Turn long links into')
+            ->assertSee('id="shortener-form"', false)
+            ->assertSee('data-endpoint="/api/v1/urls"', false)
             ->assertSee('name="long_url"', false)
-            ->assertSee('Shorten URL');
+            ->assertSee('Shorten URL')
+            ->assertSee('id="short-url-result"', false);
     }
 }
