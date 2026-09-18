@@ -46,6 +46,8 @@ class UrlController extends Controller
                 Log::warning('url_cache_operation_failed', [
                     'short_code' => $result['response']['short_code'],
                     'exception' => $exception->getMessage(),
+                    'request_id' => $request->attributes->get('request_id'),
+                    'url_path' => $request->path(),
                 ]);
             }
         }

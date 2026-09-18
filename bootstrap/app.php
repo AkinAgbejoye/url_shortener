@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RequestContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,8 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->append(RequestContext::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->context(fn (): array => [
+            'request_id' => request()?->attributes->get('request_id'),
+            'url_path' => request()?->path(),
+        ]);
     })->create();

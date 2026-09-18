@@ -33,11 +33,13 @@ class UrlResolver
             Log::warning('url_cache_lock_timeout', [
                 'short_code' => $shortCode,
                 'exception' => $exception->getMessage(),
+                ...$this->requestContext(),
             ]);
         } catch (Throwable $exception) {
             Log::warning('url_cache_operation_failed', [
                 'short_code' => $shortCode,
                 'exception' => $exception->getMessage(),
+                ...$this->requestContext(),
             ]);
         }
 
@@ -52,5 +54,14 @@ class UrlResolver
         }
 
         return $longUrl;
+    }
+
+    /** @return array{request_id: mixed, url_path: string|null} */
+    private function requestContext(): array
+    {
+        return [
+            'request_id' => request()?->attributes->get('request_id'),
+            'url_path' => request()?->path(),
+        ];
     }
 }

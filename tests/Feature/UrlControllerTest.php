@@ -111,7 +111,8 @@ class UrlControllerTest extends TestCase
             ->with('url:fallback')
             ->andThrow(new RuntimeException('Redis unavailable'));
 
-        $this->get('/fallback')
+        $this->withHeader('X-Request-ID', 'test-request-id')
+            ->get('/fallback')
             ->assertRedirect('https://fallback.example');
 
         Log::shouldHaveReceived('warning')
@@ -119,7 +120,17 @@ class UrlControllerTest extends TestCase
             ->with('url_cache_operation_failed', \Mockery::on(
                 fn (array $context): bool => $context['short_code'] === 'fallback'
                     && $context['exception'] === 'Redis unavailable'
+                    && $context['request_id'] === 'test-request-id'
+                    && $context['url_path'] === 'fallback'
             ));
+    }
+
+    public function test_responses_include_a_request_id_for_log_correlation(): void
+    {
+        $this->withHeader('X-Request-ID', 'client-request-id')
+            ->getJson('/api/health')
+            ->assertOk()
+            ->assertHeader('X-Request-ID', 'client-request-id');
     }
 
     public function test_an_unknown_short_code_returns_not_found(): void
