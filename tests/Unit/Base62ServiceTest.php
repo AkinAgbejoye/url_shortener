@@ -18,6 +18,7 @@ class Base62ServiceTest extends TestCase
             'last digit' => [61, 'Z'],
             'two digits' => [62, '10'],
             'larger number' => [3843, 'ZZ'],
+            'three digits' => [3844, '100'],
         ];
     }
 
