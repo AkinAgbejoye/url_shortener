@@ -32,7 +32,7 @@ jobs:
       - name: Check code style
         run: vendor/bin/pint --test
       - name: Run tests with coverage
-        run: php artisan test --coverage --min=70
+        run: composer test:coverage
 
   frontend:
     name: Frontend build and audit
