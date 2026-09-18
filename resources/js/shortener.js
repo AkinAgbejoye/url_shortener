@@ -59,16 +59,37 @@ if (form) {
         return null;
     };
 
+    const copyText = async (text) => {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = text;
+        temporaryInput.setAttribute('readonly', '');
+        temporaryInput.className = 'fixed -left-[9999px] top-0';
+        document.body.append(temporaryInput);
+        temporaryInput.select();
+
+        const copied = document.execCommand('copy');
+        temporaryInput.remove();
+
+        if (!copied) {
+            throw new Error('The browser rejected the copy command.');
+        }
+    };
+
     const showResult = ({ long_url: longUrl, short_url: shortUrl }) => {
         const card = document.createElement('div');
-        card.className = 'rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-left';
+        card.className = 'rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-left shadow-xl shadow-black/10 sm:p-6';
 
         const eyebrow = document.createElement('p');
         eyebrow.className = 'text-sm font-semibold text-emerald-300';
         eyebrow.textContent = 'Your short link is ready';
 
         const link = document.createElement('a');
-        link.className = 'mt-2 block break-all text-lg font-semibold text-white underline decoration-emerald-400/50 underline-offset-4 hover:decoration-emerald-300';
+        link.className = 'mt-2 block break-all text-xl font-semibold text-white underline decoration-emerald-400/50 underline-offset-4 hover:decoration-emerald-300 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-300';
         link.href = shortUrl;
         link.target = '_blank';
         link.rel = 'noreferrer';
@@ -79,9 +100,50 @@ if (form) {
         original.title = longUrl;
         original.textContent = `From: ${longUrl}`;
 
-        card.append(eyebrow, link, original);
+        const actions = document.createElement('div');
+        actions.className = 'mt-5 flex flex-col gap-2 sm:flex-row';
+
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.className = 'inline-flex items-center justify-center rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
+        copyButton.textContent = 'Copy short link';
+        copyButton.addEventListener('click', async () => {
+            try {
+                await copyText(shortUrl);
+                copyButton.textContent = 'Copied!';
+                window.setTimeout(() => {
+                    copyButton.textContent = 'Copy short link';
+                }, 2000);
+            } catch (error) {
+                console.error(error);
+                copyButton.textContent = 'Unable to copy';
+            }
+        });
+
+        const openLink = document.createElement('a');
+        openLink.className = 'inline-flex items-center justify-center rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
+        openLink.href = shortUrl;
+        openLink.target = '_blank';
+        openLink.rel = 'noreferrer';
+        openLink.textContent = 'Open link';
+
+        const resetButton = document.createElement('button');
+        resetButton.type = 'button';
+        resetButton.className = 'inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 sm:ml-auto';
+        resetButton.textContent = 'Shorten another';
+        resetButton.addEventListener('click', () => {
+            form.reset();
+            clearFieldError();
+            result.replaceChildren();
+            result.hidden = true;
+            input.focus();
+        });
+
+        actions.append(copyButton, openLink, resetButton);
+        card.append(eyebrow, link, original, actions);
         result.replaceChildren(card);
         result.hidden = false;
+        result.focus();
     };
 
     const showError = (text) => {

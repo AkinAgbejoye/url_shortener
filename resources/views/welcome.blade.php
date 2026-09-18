@@ -64,7 +64,7 @@
                         </button>
                     </form>
                     <p id="url-requirements" class="mt-4 text-sm text-slate-400">Only HTTP and HTTPS links are supported.</p>
-                    <div id="short-url-result" class="mt-8" aria-live="polite" aria-atomic="true" hidden></div>
+                    <div id="short-url-result" class="mt-8 outline-none" aria-live="polite" aria-atomic="true" tabindex="-1" hidden></div>
                 </section>
 
                 <div class="mt-16 grid w-full max-w-3xl gap-4 text-left sm:grid-cols-3">

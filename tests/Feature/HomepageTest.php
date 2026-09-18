@@ -17,6 +17,7 @@ class HomepageTest extends TestCase
             ->assertSee('name="long_url"', false)
             ->assertSee('id="long-url-error"', false)
             ->assertSee('Shorten URL')
-            ->assertSee('id="short-url-result"', false);
+            ->assertSee('id="short-url-result"', false)
+            ->assertSee('aria-live="polite"', false);
     }
 }
