@@ -8,10 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  APP_ENV: testing
-  APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-
 jobs:
   lint:
     name: Lint and build
@@ -111,3 +107,61 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Audit npm dependencies
         run: npm audit --audit-level=high
+
+  bootstrap:
+    name: Fresh-clone bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Create application environment
+        run: cp .env.example .env
+      - name: Generate application key
+        run: php artisan key:generate --no-interaction
+      - name: Create and migrate SQLite database
+        run: |
+          touch database/database.sqlite
+          php artisan migrate --force --no-interaction
+      - name: Build frontend assets
+        run: npm run build
+      - name: Run PHP tests
+        run: php artisan test
+      - name: Run frontend unit tests
+        run: npm test
+      - name: Smoke test health endpoint
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/url-shortener-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8000/api/health > /tmp/url-shortener-health.json; then
+              grep --quiet '"status":"ok"' /tmp/url-shortener-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+
+          cat /tmp/url-shortener-server.log
+          exit 1

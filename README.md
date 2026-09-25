@@ -22,22 +22,19 @@ A URL-shortening API built with Laravel 12. It generates deterministic Base62 sh
 ```bash
 git clone https://github.com/AkinAgbejoye/url_shortener.git
 cd url_shortener
-composer install
+composer install --no-interaction --prefer-dist
 npm ci
 cp .env.example .env
-php artisan key:generate
+php artisan key:generate --no-interaction
 touch database/database.sqlite
-```
-
-For a dependency-free local cache, set `CACHE_STORE=array` in `.env`. Then initialize and run the application:
-
-```bash
-php artisan migrate
+php artisan migrate --force --no-interaction
 npm run build
+php artisan test
+npm test
 php artisan serve
 ```
 
-The API is available at `http://localhost:8000`.
+The API is available at `http://localhost:8000`. The example environment uses the dependency-free `array` cache; set `CACHE_STORE=redis` for a persistent, production-like cache.
 
 ## Docker setup
 
