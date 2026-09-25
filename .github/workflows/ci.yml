@@ -8,13 +8,46 @@ on:
 permissions:
   contents: read
 
+env:
+  APP_ENV: testing
+  APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
 jobs:
-  backend:
-    name: PHP tests and quality
+  lint:
+    name: Lint and build
     runs-on: ubuntu-latest
-    env:
-      APP_ENV: testing
-      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Check PHP code style
+        run: vendor/bin/pint --test
+      - name: Build frontend assets
+        run: npm run build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up PHP
@@ -23,32 +56,25 @@ jobs:
           php-version: '8.2'
           coverage: pcov
           tools: composer:v2
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Validate Composer configuration
-        run: composer validate --strict
-      - name: Audit Composer dependencies
-        run: composer audit
-      - name: Check code style
-        run: vendor/bin/pint --test
-      - name: Run tests with coverage
-        run: composer test:coverage
-
-  frontend:
-    name: Frontend build and audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install npm dependencies
         run: npm ci
-      - name: Audit npm dependencies
-        run: npm audit --audit-level=high
-      - name: Run frontend tests
+      - name: Run PHP tests with coverage
+        run: composer test:coverage
+      - name: Run frontend unit tests
         run: npm test
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -61,3 +87,27 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+      - name: Validate Composer configuration
+        run: composer validate --strict
+      - name: Audit Composer dependencies
+        run: composer audit
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
