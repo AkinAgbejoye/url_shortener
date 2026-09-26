@@ -70,6 +70,16 @@ jobs:
         run: npm ci
       - name: Run PHP tests with coverage
         run: composer test:coverage
+      - name: Generate Clover coverage report
+        run: |
+          mkdir -p build/coverage
+          vendor/bin/phpunit --coverage-clover build/coverage/clover.xml
+      - name: Upload backend coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-clover
+          path: build/coverage/clover.xml
+          retention-days: 14
       - name: Run frontend unit tests
         run: npm test
       - name: Install Chromium
