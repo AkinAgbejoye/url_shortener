@@ -107,6 +107,9 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 
 - Configure a persistent database and `CACHE_STORE=redis` in production.
 - Keep `APP_DEBUG=false` and provide a unique `APP_KEY`.
+- Metrics are disabled by default. Set `METRICS_DRIVER=statsd` and configure `METRICS_STATSD_HOST`, `METRICS_STATSD_PORT`, and `METRICS_PREFIX` to send counters and timings to a StatsD-compatible agent.
+- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, and `<prefix>.cache_operations_total`. Their bounded labels describe only operation and outcome; URLs, short codes, request IDs, idempotency keys, IP addresses, and user agents are never exported.
+- Useful starting alerts are any sustained cache operation failure, a request `error` rate above 1% for five minutes, or p95 request duration above 250 ms. Tune these thresholds from observed production traffic.
 - Unhandled exceptions are written as JSON to `storage/logs/exceptions-YYYY-MM-DD.log` through the dedicated `LOG_EXCEPTION_CHANNEL`. Set that variable to another configured channel such as `stderr` or `papertrail` for external collection, or to `null` to disable reporting.
 - Exception reports contain only the exception class, request ID, URL path, HTTP method, and a bounded user-agent. Request bodies, query strings, credentials, authorization headers, and idempotency keys are deliberately excluded. A reporting outage does not alter the original application response.
 - The creation endpoint is limited to 10 requests per minute per client.

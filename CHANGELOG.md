@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Privacy-safe request, redirect, and cache metrics with an optional StatsD exporter.
+
 ## [0.1.0] - 2026-09-26
 
 ### Added
