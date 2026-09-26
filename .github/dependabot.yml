@@ -1,14 +1,52 @@
 version: 2
 updates:
   - package-ecosystem: composer
-    directory: /
+    directory: "/"
     schedule:
       interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Porto-Novo
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - php
+    groups:
+      composer-routine-updates:
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: npm
-    directory: /
+    directory: "/"
     schedule:
       interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Porto-Novo
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - javascript
+    groups:
+      npm-routine-updates:
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: github-actions
-    directory: /
+    directory: "/"
     schedule:
       interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Porto-Novo
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - github_actions
+    groups:
+      actions-routine-updates:
+        update-types:
+          - minor
+          - patch
