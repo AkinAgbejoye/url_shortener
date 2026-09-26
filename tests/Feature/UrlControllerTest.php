@@ -68,7 +68,12 @@ class UrlControllerTest extends TestCase
     {
         $this->postJson('/api/v1/urls', ['long_url' => 'not-a-url'])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('long_url');
+            ->assertExactJson([
+                'message' => 'The long URL must be a valid HTTP or HTTPS URL.',
+                'errors' => [
+                    'long_url' => ['The long URL must be a valid HTTP or HTTPS URL.'],
+                ],
+            ]);
     }
 
     public function test_it_only_accepts_http_and_https_urls(): void
@@ -123,7 +128,13 @@ class UrlControllerTest extends TestCase
             '/api/v1/urls',
             ['long_url' => 'https://example.com'],
             ['Idempotency-Key' => str_repeat('a', 256)],
-        )->assertUnprocessable();
+        )->assertUnprocessable()
+            ->assertExactJson([
+                'message' => 'The Idempotency-Key header may not be greater than 255 characters.',
+                'errors' => [
+                    'idempotency_key' => ['The Idempotency-Key header may not be greater than 255 characters.'],
+                ],
+            ]);
     }
 
     public function test_it_redirects_from_the_cache(): void

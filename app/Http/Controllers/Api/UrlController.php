@@ -16,17 +16,9 @@ class UrlController extends Controller
 {
     public function store(StoreUrlRequest $request, UrlShortenerService $shortener): JsonResponse
     {
-        $idempotencyKey = $request->header('Idempotency-Key');
-
-        if (is_string($idempotencyKey) && mb_strlen($idempotencyKey) > 255) {
-            return response()->json([
-                'message' => 'The Idempotency-Key header may not be greater than 255 characters.',
-            ], 422);
-        }
-
         $result = $shortener->shorten(
             $request->validated('long_url'),
-            is_string($idempotencyKey) && $idempotencyKey !== '' ? $idempotencyKey : null,
+            $request->idempotencyKey(),
         );
 
         if ($result['conflict']) {
