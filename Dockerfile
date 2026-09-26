@@ -2,7 +2,10 @@ FROM php:8.2-cli
 
 WORKDIR /var/www
 
-RUN docker-php-ext-install pdo_mysql
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev \
+    && docker-php-ext-install curl mbstring pdo_mysql \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

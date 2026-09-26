@@ -11,7 +11,7 @@ A URL-shortening API built with Laravel 12. It generates deterministic Base62 sh
 
 ## Requirements
 
-- PHP 8.2 or newer
+- PHP 8.2 or newer with the cURL and Mbstring extensions
 - Composer 2
 - Node.js 22 and npm
 - SQLite for the simplest local setup, or MySQL for production-like usage
@@ -111,7 +111,9 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 - The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, and `<prefix>.cache_operations_total`. Their bounded labels describe only operation and outcome; URLs, short codes, request IDs, idempotency keys, IP addresses, and user agents are never exported.
 - Useful starting alerts are any sustained cache operation failure, a request `error` rate above 1% for five minutes, or p95 request duration above 250 ms. Tune these thresholds from observed production traffic.
 - Unhandled exceptions are written as JSON to `storage/logs/exceptions-YYYY-MM-DD.log` through the dedicated `LOG_EXCEPTION_CHANNEL`. Set that variable to another configured channel such as `stderr` or `papertrail` for external collection, or to `null` to disable reporting.
-- Exception reports contain only the exception class, request ID, URL path, HTTP method, and a bounded user-agent. Request bodies, query strings, credentials, authorization headers, and idempotency keys are deliberately excluded. A reporting outage does not alter the original application response.
+- External exception delivery is disabled when `SENTRY_LARAVEL_DSN` is empty. To enable Sentry, set that DSN plus `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE`; use `SENTRY_SAMPLE_RATE` from `0.0` to `1.0` to control the proportion of error events sent.
+- Sentry is used only as an exception transport. Automatic integrations, performance tracing, logs, metrics, and breadcrumbs are disabled. Reports retain the exception type and stack with a generic message, plus the request ID, URL path, HTTP method, and bounded user-agent. A final sanitizer removes request bodies, query strings, full URLs, credentials, headers, idempotency keys, user data, breadcrumbs, extras, and stack variables.
+- Local and external reporting failures are isolated and never alter the original application response.
 - The creation endpoint is limited to 10 requests per minute per client.
 - Cache entries expire after 24 hours and are rebuilt from the database on demand.
 
