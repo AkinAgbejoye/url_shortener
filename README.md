@@ -91,6 +91,8 @@ composer test
 composer test:coverage
 vendor/bin/pint --test
 composer audit
+npm run lint
+npm run format:check
 npm test
 npm run test:e2e
 npm audit --audit-level=high
@@ -99,7 +101,7 @@ npm run build
 
 Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, validation, idempotency, transaction rollback, cache concurrency and failures, redirects, Base62 conversion, form submission, errors, clipboard behavior, history, themes, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. Successful CI runs retain a machine-readable Clover report as the `backend-coverage-clover` artifact for 14 days.
 
-GitHub Actions runs tests with a 70% minimum coverage threshold, style checks, dependency audits, and the frontend build on every pull request and push to `main`. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
+GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, Prettier, dependency audits, and the frontend build on every pull request and push to `main`. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
 
 ## Operational notes
 

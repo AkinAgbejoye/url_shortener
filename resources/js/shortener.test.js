@@ -41,10 +41,12 @@ describe('URL shortener form', () => {
     });
 
     it('submits the URL and renders the returned short link', async () => {
-        fetch.mockResolvedValue(response({
-            long_url: 'https://example.com/a-long-path',
-            short_url: 'http://localhost/1',
-        }));
+        fetch.mockResolvedValue(
+            response({
+                long_url: 'https://example.com/a-long-path',
+                short_url: 'http://localhost/1',
+            }),
+        );
 
         const input = document.querySelector('#long-url');
         input.value = 'https://example.com/a-long-path';
@@ -52,11 +54,18 @@ describe('URL shortener form', () => {
 
         expect(getByRole(document.body, 'button', { name: 'Shortening…' }).disabled).toBe(true);
 
-        await waitFor(() => expect(getByRole(document.querySelector('#short-url-result'), 'link', { name: 'http://localhost/1' })).toBeTruthy());
-        expect(fetch).toHaveBeenCalledWith('/api/v1/urls', expect.objectContaining({
-            method: 'POST',
-            body: JSON.stringify({ long_url: 'https://example.com/a-long-path' }),
-        }));
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#short-url-result'), 'link', { name: 'http://localhost/1' }),
+            ).toBeTruthy(),
+        );
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/v1/urls',
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ long_url: 'https://example.com/a-long-path' }),
+            }),
+        );
         expect(getByRole(document.body, 'button', { name: 'Shorten URL' }).disabled).toBe(false);
     });
 
@@ -67,19 +76,28 @@ describe('URL shortener form', () => {
         fireEvent.submit(document.querySelector('#shortener-form'));
 
         expect(fetch).not.toHaveBeenCalled();
-        expect(document.querySelector('#long-url-error').textContent).toBe('Use a URL beginning with http:// or https://.');
+        expect(document.querySelector('#long-url-error').textContent).toBe(
+            'Use a URL beginning with http:// or https://.',
+        );
         expect(input.getAttribute('aria-invalid')).toBe('true');
     });
 
     it('shows validation details returned by the API', async () => {
-        fetch.mockResolvedValue(response({
-            errors: { long_url: ['The URL is not allowed.'] },
-        }, 422));
+        fetch.mockResolvedValue(
+            response(
+                {
+                    errors: { long_url: ['The URL is not allowed.'] },
+                },
+                422,
+            ),
+        );
         document.querySelector('#long-url').value = 'https://example.com';
 
         fireEvent.submit(document.querySelector('#shortener-form'));
 
-        await waitFor(() => expect(document.querySelector('#long-url-error').textContent).toBe('The URL is not allowed.'));
+        await waitFor(() =>
+            expect(document.querySelector('#long-url-error').textContent).toBe('The URL is not allowed.'),
+        );
         expect(document.activeElement).toBe(document.querySelector('#long-url'));
     });
 
@@ -90,14 +108,18 @@ describe('URL shortener form', () => {
 
         fireEvent.submit(document.querySelector('#shortener-form'));
 
-        await waitFor(() => expect(getByRole(document.body, 'alert').textContent).toContain('Unable to reach the service'));
+        await waitFor(() =>
+            expect(getByRole(document.body, 'alert').textContent).toContain('Unable to reach the service'),
+        );
     });
 
     it('copies the short link and resets the form', async () => {
-        fetch.mockResolvedValue(response({
-            long_url: 'https://example.com',
-            short_url: 'http://localhost/2',
-        }));
+        fetch.mockResolvedValue(
+            response({
+                long_url: 'https://example.com',
+                short_url: 'http://localhost/2',
+            }),
+        );
         const input = document.querySelector('#long-url');
         input.value = 'https://example.com';
         fireEvent.submit(document.querySelector('#shortener-form'));
@@ -114,10 +136,12 @@ describe('URL shortener form', () => {
     });
 
     it('persists recent links and clears the history', async () => {
-        fetch.mockResolvedValue(response({
-            long_url: 'https://example.com/persisted',
-            short_url: 'http://localhost/3',
-        }));
+        fetch.mockResolvedValue(
+            response({
+                long_url: 'https://example.com/persisted',
+                short_url: 'http://localhost/3',
+            }),
+        );
         document.querySelector('#long-url').value = 'https://example.com/persisted';
         fireEvent.submit(document.querySelector('#shortener-form'));
 

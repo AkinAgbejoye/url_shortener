@@ -18,7 +18,8 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'APP_ENV=testing APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= DB_CONNECTION=sqlite DB_DATABASE=database/e2e.sqlite CACHE_STORE=array SESSION_DRIVER=file QUEUE_CONNECTION=sync APP_URL=http://127.0.0.1:8011 php artisan serve --host=127.0.0.1 --port=8011',
+        command:
+            'APP_ENV=testing APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= DB_CONNECTION=sqlite DB_DATABASE=database/e2e.sqlite CACHE_STORE=array SESSION_DRIVER=file QUEUE_CONNECTION=sync APP_URL=http://127.0.0.1:8011 php artisan serve --host=127.0.0.1 --port=8011',
         url: 'http://127.0.0.1:8011/api/health',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

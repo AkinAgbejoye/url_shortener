@@ -38,6 +38,10 @@ jobs:
         run: npm ci
       - name: Check PHP code style
         run: vendor/bin/pint --test
+      - name: Lint frontend code
+        run: npm run lint
+      - name: Check frontend formatting
+        run: npm run format:check
       - name: Build frontend assets
         run: npm run build
 
