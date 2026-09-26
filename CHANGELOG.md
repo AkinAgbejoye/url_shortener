@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-26
+
 ### Added
 
 - Deterministic Base62 short URL creation.
@@ -17,3 +19,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - System-aware light and dark themes with a persistent manual preference.
 - Playwright coverage for the complete browser shortening and redirect journey.
 - Automated tests, coverage enforcement, style checks, dependency audits, and frontend builds in CI.
+- Dependabot updates for Composer, npm, and GitHub Actions dependencies.
+- Structured exception reporting with privacy-safe request context.
+- Pull-request and contribution guidance for test-backed, focused changes.
+
+### Changed
+
+- CI now proves the fresh-clone bootstrap path and retains backend coverage evidence.
+- Pint, ESLint, and Prettier checks now enforce PHP and JavaScript code quality.
+
+[Unreleased]: https://github.com/AkinAgbejoye/url_shortener/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/AkinAgbejoye/url_shortener/releases/tag/v0.1.0
