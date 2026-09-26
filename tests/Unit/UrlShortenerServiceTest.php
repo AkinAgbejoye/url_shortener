@@ -3,8 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\IdempotencyKey;
+use App\Services\Base62Service;
 use App\Services\UrlShortenerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use RuntimeException;
 use Tests\TestCase;
 
 class UrlShortenerServiceTest extends TestCase
@@ -48,5 +50,42 @@ class UrlShortenerServiceTest extends TestCase
 
         $this->assertSame(hash('sha256', 'https://example.com/persisted'), $record->request_hash);
         $this->assertSame($result['response'], $record->response);
+    }
+
+    public function test_it_creates_independent_urls_when_no_idempotency_key_is_supplied(): void
+    {
+        $service = app(UrlShortenerService::class);
+
+        $first = $service->shorten('https://example.com/unkeyed', null);
+        $second = $service->shorten('https://example.com/unkeyed', null);
+
+        $this->assertTrue($first['created']);
+        $this->assertTrue($second['created']);
+        $this->assertNotSame($first['response']['id'], $second['response']['id']);
+        $this->assertDatabaseCount('urls', 2);
+        $this->assertDatabaseCount('idempotency_keys', 0);
+    }
+
+    public function test_it_rolls_back_url_creation_when_short_code_generation_fails(): void
+    {
+        $base62 = new class extends Base62Service
+        {
+            public function encode(int $number): string
+            {
+                throw new RuntimeException('Encoding failed.');
+            }
+        };
+
+        $service = new UrlShortenerService($base62);
+
+        try {
+            $service->shorten('https://example.com/rollback', 'rollback-key');
+            $this->fail('Expected short-code generation to fail.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Encoding failed.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('urls', 0);
+        $this->assertDatabaseCount('idempotency_keys', 0);
     }
 }

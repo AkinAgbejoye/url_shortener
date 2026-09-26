@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Url;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +34,36 @@ class UrlControllerTest extends TestCase
         $this->assertSame('https://example.com/a/long/path', Cache::get('url:1'));
     }
 
+    public function test_it_returns_the_created_url_when_the_cache_write_fails(): void
+    {
+        app(RateLimiter::class);
+        Log::spy();
+        Cache::shouldReceive('put')
+            ->once()
+            ->with('url:1', 'https://example.com/cache-failure', \Mockery::type(\DateTimeInterface::class))
+            ->andThrow(new RuntimeException('Redis write failed'));
+
+        $this->withHeader('X-Request-ID', 'cache-write-request')
+            ->postJson('/api/v1/urls', [
+                'long_url' => 'https://example.com/cache-failure',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('short_code', '1');
+
+        $this->assertDatabaseHas('urls', [
+            'short_code' => '1',
+            'long_url' => 'https://example.com/cache-failure',
+        ]);
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->with('url_cache_operation_failed', \Mockery::on(
+                fn (array $context): bool => $context['short_code'] === '1'
+                    && $context['exception'] === 'Redis write failed'
+                    && $context['request_id'] === 'cache-write-request'
+                    && $context['url_path'] === 'api/v1/urls'
+            ));
+    }
+
     public function test_it_validates_the_long_url(): void
     {
         $this->postJson('/api/v1/urls', ['long_url' => 'not-a-url'])
@@ -58,6 +89,18 @@ class UrlControllerTest extends TestCase
         $this->assertSame($original->json(), $replay->json());
         $this->assertDatabaseCount('urls', 1);
         $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_an_empty_idempotency_key_is_treated_as_absent(): void
+    {
+        $headers = ['Idempotency-Key' => ''];
+        $payload = ['long_url' => 'https://example.com/unkeyed'];
+
+        $this->postJson('/api/v1/urls', $payload, $headers)->assertCreated();
+        $this->postJson('/api/v1/urls', $payload, $headers)->assertCreated();
+
+        $this->assertDatabaseCount('urls', 2);
+        $this->assertDatabaseCount('idempotency_keys', 0);
     }
 
     public function test_an_idempotency_key_cannot_be_reused_for_another_url(): void
