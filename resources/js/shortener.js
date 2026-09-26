@@ -18,7 +18,13 @@ export const initShortener = (root = document) => {
     const history = root.querySelector('#recent-links');
     const historyList = root.querySelector('#recent-links-list');
     const clearHistoryButton = root.querySelector('#clear-history');
-    const storage = root.defaultView?.localStorage;
+    const storage = (() => {
+        try {
+            return root.defaultView?.localStorage;
+        } catch {
+            return null;
+        }
+    })();
 
     const setLoading = (loading) => {
         button.disabled = loading;
@@ -87,8 +93,13 @@ export const initShortener = (root = document) => {
         root.body.append(temporaryInput);
         temporaryInput.select();
 
-        const copied = document.execCommand('copy');
-        temporaryInput.remove();
+        let copied;
+
+        try {
+            copied = document.execCommand('copy');
+        } finally {
+            temporaryInput.remove();
+        }
 
         if (!copied) {
             throw new Error('The browser rejected the copy command.');
@@ -113,8 +124,10 @@ export const initShortener = (root = document) => {
                 }
 
                 try {
+                    const urls = [new URL(link.long_url), new URL(link.short_url)];
+
                     return (
-                        ['http:', 'https:'].includes(new URL(link.short_url).protocol) &&
+                        urls.every((url) => ['http:', 'https:'].includes(url.protocol)) &&
                         !Number.isNaN(new Date(link.created_at).getTime())
                     );
                 } catch {
