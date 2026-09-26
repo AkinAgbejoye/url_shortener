@@ -105,6 +105,8 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, style checks, d
 
 - Configure a persistent database and `CACHE_STORE=redis` in production.
 - Keep `APP_DEBUG=false` and provide a unique `APP_KEY`.
+- Unhandled exceptions are written as JSON to `storage/logs/exceptions-YYYY-MM-DD.log` through the dedicated `LOG_EXCEPTION_CHANNEL`. Set that variable to another configured channel such as `stderr` or `papertrail` for external collection, or to `null` to disable reporting.
+- Exception reports contain only the exception class, request ID, URL path, HTTP method, and a bounded user-agent. Request bodies, query strings, credentials, authorization headers, and idempotency keys are deliberately excluded. A reporting outage does not alter the original application response.
 - The creation endpoint is limited to 10 requests per minute per client.
 - Cache entries expire after 24 hours and are rebuilt from the database on demand.
 

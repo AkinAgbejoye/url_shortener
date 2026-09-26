@@ -21,6 +21,8 @@ return [
 
     'default' => env('LOG_CHANNEL', 'stack'),
 
+    'exception_channel' => env('LOG_EXCEPTION_CHANNEL', 'exceptions'),
+
     /*
     |--------------------------------------------------------------------------
     | Deprecations Log Channel
@@ -72,6 +74,15 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+            'formatter' => JsonFormatter::class,
+        ],
+
+        'exceptions' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/exceptions.log'),
+            'level' => env('LOG_EXCEPTION_LEVEL', 'error'),
+            'days' => env('LOG_EXCEPTION_DAYS', 14),
             'replace_placeholders' => true,
             'formatter' => JsonFormatter::class,
         ],

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\RequestContext;
+use App\Support\StructuredExceptionReporter;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,4 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'request_id' => request()?->attributes->get('request_id'),
             'url_path' => request()?->path(),
         ]);
+
+        $exceptions->report(function (Throwable $exception): void {
+            try {
+                app(StructuredExceptionReporter::class)->report($exception);
+            } catch (Throwable) {
+                // Exception reporting must never replace the original response.
+            }
+        })->stop();
     })->create();
