@@ -100,6 +100,8 @@ curl -X POST http://localhost:8000/api/v1/urls/1/disable \
 
 Only a SHA-256 hash of the token is stored. Missing, incorrect, unknown, and deleted credentials return the same `404 Not Found` response. Tokens are never returned by idempotent replays, cannot be recovered, and should be kept out of URLs, logs, analytics, and source control.
 
+The browser UI can set expiration in local time and stores recent-link management tokens in local storage so it can update expiration, disable, enable, or delete those links later. Tokens are never rendered into page markup. Clearing recent history or browser storage permanently removes this local management access.
+
 ### Follow a short URL
 
 `GET /{shortCode}` redirects to the original URL. Unknown, expired, disabled, and deleted codes return `404 Not Found`.

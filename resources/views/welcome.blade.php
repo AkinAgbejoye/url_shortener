@@ -74,6 +74,12 @@
                                 <input id="long-url" name="long_url" type="url" inputmode="url" autocomplete="url" placeholder="Paste your long URL here" class="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-950 outline-none placeholder:text-slate-400" aria-describedby="url-requirements long-url-error" required>
                             </div>
                             <p id="long-url-error" class="mt-2 hidden text-sm font-medium text-red-300" role="alert"></p>
+                            <div class="mt-3">
+                                <label for="expires-at" class="text-sm font-medium text-slate-700 dark:text-slate-300">Expiration <span class="font-normal text-slate-500">(optional)</span></label>
+                                <input id="expires-at" name="expires_at" type="datetime-local" class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white" aria-describedby="expires-at-help expires-at-error">
+                                <p id="expires-at-help" class="mt-1 text-xs text-slate-500">Uses your local timezone. Maximum lifetime is 365 days.</p>
+                                <p id="expires-at-error" class="mt-1 hidden text-sm font-medium text-red-300" role="alert"></p>
+                            </div>
                         </div>
                         <button id="shorten-button" type="submit" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 disabled:cursor-wait disabled:opacity-70 sm:mt-0 sm:w-auto">
                             <span data-button-label>Shorten URL</span>

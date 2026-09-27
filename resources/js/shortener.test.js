@@ -8,6 +8,8 @@ const page = () => `
             <input id="long-url" name="long_url">
         </div>
         <p id="long-url-error" class="hidden"></p>
+        <input id="expires-at" name="expires_at" type="datetime-local">
+        <p id="expires-at-error" class="hidden"></p>
         <button id="shorten-button" type="submit">
             <span data-button-label>Shorten URL</span>
             <svg data-button-arrow></svg>
@@ -22,10 +24,11 @@ const page = () => `
     </section>
 `;
 
-const response = (body, status = 201) => ({
+const response = (body, status = 201, managementToken = null) => ({
     ok: status >= 200 && status < 300,
     status,
     json: vi.fn().mockResolvedValue(body),
+    headers: { get: vi.fn().mockReturnValue(managementToken) },
 });
 
 describe('URL shortener form', () => {
@@ -71,6 +74,7 @@ describe('URL shortener form', () => {
             }),
         );
         expect(getByRole(document.body, 'button', { name: 'Shorten URL' }).disabled).toBe(false);
+        expect(document.querySelector('#short-url-result').textContent).not.toContain('Disable link');
     });
 
     it('rejects invalid input before making an API request', () => {
@@ -161,6 +165,130 @@ describe('URL shortener form', () => {
         fireEvent.click(getByRole(document.body, 'button', { name: 'Clear history' }));
         expect(localStorage.getItem('shortly.recent-links')).toBeNull();
         expect(document.querySelector('#recent-links').hidden).toBe(true);
+    });
+
+    it('submits expiration in UTC and stores the management token without rendering it', async () => {
+        const token = 'a'.repeat(64);
+        const localExpiration = '2030-01-02T12:30';
+        fetch.mockResolvedValue(
+            response(
+                {
+                    short_code: 'managed',
+                    long_url: 'https://example.com/managed',
+                    short_url: 'http://localhost/managed',
+                    expires_at: new Date(localExpiration).toISOString(),
+                    status: 'active',
+                },
+                201,
+                token,
+            ),
+        );
+        document.querySelector('#long-url').value = 'https://example.com/managed';
+        document.querySelector('#expires-at').value = localExpiration;
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#short-url-result'), 'button', { name: 'Disable link' }),
+            ).toBeTruthy(),
+        );
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/v1/urls',
+            expect.objectContaining({
+                body: JSON.stringify({
+                    long_url: 'https://example.com/managed',
+                    expires_at: new Date(localExpiration).toISOString(),
+                }),
+            }),
+        );
+        expect(JSON.parse(localStorage.getItem('shortly.recent-links'))[0].management_token).toBe(token);
+        expect(document.body.textContent).not.toContain(token);
+        expect(document.querySelector('#short-url-result').textContent).toContain('Expires');
+    });
+
+    it('updates lifecycle state only after a successful management response', async () => {
+        const token = 'b'.repeat(64);
+        fetch
+            .mockResolvedValueOnce(
+                response(
+                    {
+                        short_code: 'managed',
+                        long_url: 'https://example.com/managed',
+                        short_url: 'http://localhost/managed',
+                        expires_at: null,
+                        status: 'active',
+                    },
+                    201,
+                    token,
+                ),
+            )
+            .mockResolvedValueOnce(response({ message: 'Service unavailable' }, 503))
+            .mockResolvedValueOnce(
+                response({
+                    short_code: 'managed',
+                    long_url: 'https://example.com/managed',
+                    short_url: 'http://localhost/managed',
+                    expires_at: null,
+                    disabled_at: '2026-09-27T10:00:00+00:00',
+                    status: 'disabled',
+                }),
+            );
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        document.querySelector('#long-url').value = 'https://example.com/managed';
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        let disable = await waitFor(() =>
+            getByRole(document.querySelector('#short-url-result'), 'button', { name: 'Disable link' }),
+        );
+        fireEvent.click(disable);
+        await waitFor(() => expect(getByRole(document.querySelector('#short-url-result'), 'alert')).toBeTruthy());
+        expect(document.querySelector('#short-url-result').textContent).toContain('Active');
+
+        disable = getByRole(document.querySelector('#short-url-result'), 'button', { name: 'Disable link' });
+        fireEvent.click(disable);
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#short-url-result'), 'button', { name: 'Enable link' }),
+            ).toBeTruthy(),
+        );
+        expect(fetch).toHaveBeenLastCalledWith(
+            '/api/v1/urls/managed/disable',
+            expect.objectContaining({
+                method: 'POST',
+                headers: expect.objectContaining({ 'X-Management-Token': token }),
+            }),
+        );
+        expect(document.querySelector('#short-url-result').textContent).toContain('Disabled');
+    });
+
+    it('requires confirmation before deleting a managed link', async () => {
+        const token = 'c'.repeat(64);
+        fetch.mockResolvedValue(
+            response(
+                {
+                    short_code: 'managed',
+                    long_url: 'https://example.com/managed',
+                    short_url: 'http://localhost/managed',
+                    expires_at: null,
+                    status: 'active',
+                },
+                201,
+                token,
+            ),
+        );
+        vi.spyOn(window, 'confirm').mockReturnValue(false);
+        document.querySelector('#long-url').value = 'https://example.com/managed';
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        const deleteButton = await waitFor(() =>
+            getByRole(document.querySelector('#short-url-result'), 'button', { name: 'Delete link' }),
+        );
+        fireEvent.click(deleteButton);
+
+        expect(window.confirm).toHaveBeenCalled();
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(document.querySelector('#short-url-result').hidden).toBe(false);
     });
 
     it('uses the legacy clipboard fallback and removes its temporary textarea', async () => {
@@ -305,10 +433,17 @@ describe('URL shortener form', () => {
         document.body.innerHTML = page();
         initShortener();
         fetch.mockResolvedValue(
-            response({
-                long_url: 'https://example.com/write-failure',
-                short_url: 'http://localhost/7',
-            }),
+            response(
+                {
+                    short_code: '7',
+                    long_url: 'https://example.com/write-failure',
+                    short_url: 'http://localhost/7',
+                    expires_at: null,
+                    status: 'active',
+                },
+                201,
+                'd'.repeat(64),
+            ),
         );
         document.querySelector('#long-url').value = 'https://example.com/write-failure';
 
@@ -320,5 +455,6 @@ describe('URL shortener form', () => {
                 name: 'http://localhost/7',
             }),
         ).toBeTruthy();
+        expect(getByRole(document.querySelector('#short-url-result'), 'button', { name: 'Disable link' })).toBeTruthy();
     });
 });
