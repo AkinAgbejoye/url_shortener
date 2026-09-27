@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\IdempotencyKey;
 use App\Models\Url;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,9 +14,12 @@ class UrlShortenerService
     public function __construct(private readonly Base62Service $base62) {}
 
     /** @return array{response: array<string, mixed>, created: bool, conflict: bool} */
-    public function shorten(string $longUrl, ?string $idempotencyKey): array
-    {
-        $requestHash = hash('sha256', $longUrl);
+    public function shorten(
+        string $longUrl,
+        ?string $idempotencyKey,
+        ?CarbonImmutable $expiresAt = null,
+    ): array {
+        $requestHash = $this->requestHash($longUrl, $expiresAt);
 
         if ($idempotencyKey !== null) {
             $existing = IdempotencyKey::where('key', $idempotencyKey)->first();
@@ -25,10 +29,11 @@ class UrlShortenerService
         }
 
         try {
-            return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash): array {
+            return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash, $expiresAt): array {
                 $url = Url::create([
                     'long_url' => $longUrl,
                     'short_code' => 'pending-'.Str::uuid(),
+                    'expires_at' => $expiresAt,
                 ]);
                 $shortCode = $this->base62->encode($url->id);
                 $url->update(['short_code' => $shortCode]);
@@ -38,6 +43,8 @@ class UrlShortenerService
                     'short_code' => $shortCode,
                     'short_url' => url('/'.$shortCode),
                     'long_url' => $url->long_url,
+                    'expires_at' => $url->expires_at?->utc()->toIso8601String(),
+                    'status' => $url->lifecycleState()->value,
                 ];
 
                 if ($idempotencyKey !== null) {
@@ -71,5 +78,17 @@ class UrlShortenerService
             'created' => false,
             'conflict' => ! hash_equals($existing->request_hash, $requestHash),
         ];
+    }
+
+    private function requestHash(string $longUrl, ?CarbonImmutable $expiresAt): string
+    {
+        if ($expiresAt === null) {
+            return hash('sha256', $longUrl);
+        }
+
+        return hash('sha256', json_encode([
+            'long_url' => $longUrl,
+            'expires_at' => $expiresAt->utc()->toIso8601String(),
+        ], JSON_THROW_ON_ERROR));
     }
 }

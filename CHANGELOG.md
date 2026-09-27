@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Privacy-safe request, redirect, and cache metrics with an optional StatsD exporter.
 - Opt-in Sentry exception delivery with bounded, privacy-safe request context.
 - URL lifecycle persistence for expiration, disablement, and soft deletion.
+- Optional URL expiration with strict ISO-8601 validation, UTC normalization, and idempotent replay protection.
 
 ### Changed
 

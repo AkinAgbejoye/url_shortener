@@ -3,8 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\IdempotencyKey;
+use App\Models\Url;
 use App\Services\Base62Service;
 use App\Services\UrlShortenerService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
@@ -50,6 +52,32 @@ class UrlShortenerServiceTest extends TestCase
 
         $this->assertSame(hash('sha256', 'https://example.com/persisted'), $record->request_hash);
         $this->assertSame($result['response'], $record->response);
+    }
+
+    public function test_it_persists_expiration_and_hashes_the_normalized_creation_intent(): void
+    {
+        $service = app(UrlShortenerService::class);
+        $expiration = CarbonImmutable::parse('2026-09-28T10:00:00+02:00')->utc();
+
+        $result = $service->shorten(
+            'https://example.com/expiring',
+            'expiring-key',
+            $expiration,
+        );
+        $record = IdempotencyKey::where('key', 'expiring-key')->firstOrFail();
+        $expectedHash = hash('sha256', json_encode([
+            'long_url' => 'https://example.com/expiring',
+            'expires_at' => '2026-09-28T08:00:00+00:00',
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame($expectedHash, $record->request_hash);
+        $this->assertSame('2026-09-28T08:00:00+00:00', $result['response']['expires_at']);
+        $this->assertSame('active', $result['response']['status']);
+        $this->assertDatabaseHas('urls', ['short_code' => '1']);
+        $this->assertSame(
+            '2026-09-28T08:00:00+00:00',
+            Url::where('short_code', '1')->firstOrFail()->expires_at->toIso8601String(),
+        );
     }
 
     public function test_it_creates_independent_urls_when_no_idempotency_key_is_supplied(): void

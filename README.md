@@ -60,7 +60,7 @@ curl -X POST http://localhost:8000/api/v1/urls \
   -H 'Accept: application/json' \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: homepage-001' \
-  -d '{"long_url":"https://example.com/a/long/path"}'
+  -d '{"long_url":"https://example.com/a/long/path","expires_at":"2027-01-01T00:00:00Z"}'
 ```
 
 Successful creation returns `201 Created`:
@@ -70,11 +70,15 @@ Successful creation returns `201 Created`:
   "id": 1,
   "short_code": "1",
   "short_url": "http://localhost:8000/1",
-  "long_url": "https://example.com/a/long/path"
+  "long_url": "https://example.com/a/long/path",
+  "expires_at": "2027-01-01T00:00:00+00:00",
+  "status": "active"
 }
 ```
 
-Repeating the request with the same idempotency key and URL returns the stored response with `200 OK`. Using that key for another URL returns `409 Conflict`. The header is optional and has a maximum length of 255 characters.
+`expires_at` is optional and must be a future ISO-8601 timestamp with an explicit timezone. Values are normalized to UTC. The default maximum lifetime is 365 days and can be changed with `URL_MAX_LIFETIME_DAYS`.
+
+Repeating the request with the same idempotency key, URL, and expiration returns the stored response with `200 OK`. Using that key for another URL or expiration returns `409 Conflict`. The header is optional and has a maximum length of 255 characters.
 
 ### Follow a short URL
 
