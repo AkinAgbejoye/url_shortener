@@ -3,6 +3,25 @@
 return [
     'max_lifetime_days' => (int) env('URL_MAX_LIFETIME_DAYS', 365),
 
+    'aliases' => [
+        'min_length' => (int) env('URL_ALIAS_MIN_LENGTH', 3),
+        'max_length' => (int) env('URL_ALIAS_MAX_LENGTH', 48),
+        'reserved' => [
+            'admin',
+            'api',
+            'assets',
+            'build',
+            'dashboard',
+            'health',
+            'login',
+            'logout',
+            'register',
+            'status',
+            'storage',
+            'up',
+        ],
+    ],
+
     'cleanup' => [
         'batch_size' => (int) env('URL_CLEANUP_BATCH_SIZE', 100),
         'retention_days' => (int) env('URL_CLEANUP_RETENTION_DAYS', 30),
