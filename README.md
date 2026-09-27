@@ -134,7 +134,7 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 - Configure a persistent database and `CACHE_STORE=redis` in production.
 - Keep `APP_DEBUG=false` and provide a unique `APP_KEY`.
 - Metrics are disabled by default. Set `METRICS_DRIVER=statsd` and configure `METRICS_STATSD_HOST`, `METRICS_STATSD_PORT`, and `METRICS_PREFIX` to send counters and timings to a StatsD-compatible agent.
-- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, and `<prefix>.cache_operations_total`. Their bounded labels describe only operation and outcome; URLs, short codes, request IDs, idempotency keys, IP addresses, and user agents are never exported.
+- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, `<prefix>.cache_operations_total`, and `<prefix>.lifecycle_cleanup_total`. Their bounded labels describe only operation, outcome, and cleanup record type; URLs, short codes, request IDs, idempotency keys, IP addresses, and user agents are never exported.
 - Useful starting alerts are any sustained cache operation failure, a request `error` rate above 1% for five minutes, or p95 request duration above 250 ms. Tune these thresholds from observed production traffic.
 - Unhandled exceptions are written as JSON to `storage/logs/exceptions-YYYY-MM-DD.log` through the dedicated `LOG_EXCEPTION_CHANNEL`. Set that variable to another configured channel such as `stderr` or `papertrail` for external collection, or to `null` to disable reporting.
 - External exception delivery is disabled when `SENTRY_LARAVEL_DSN` is empty. To enable Sentry, set that DSN plus `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE`; use `SENTRY_SAMPLE_RATE` from `0.0` to `1.0` to control the proportion of error events sent.
@@ -142,6 +142,27 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 - Local and external reporting failures are isolated and never alter the original application response.
 - The creation endpoint is limited to 10 requests per minute per client.
 - Versioned cache entries expire after 24 hours or at the URL expiration time, whichever comes first, and are rebuilt from the database on demand. Legacy, malformed, unsafe, and expired cache values are discarded.
+
+### Lifecycle cleanup
+
+The scheduler permanently deletes soft-deleted URLs and idempotency records once they reach the configured retention cutoff. It runs daily at `URL_CLEANUP_TIME` (default `02:30` UTC), loads at most `URL_CLEANUP_BATCH_SIZE` records at a time (default `100`), and retains records for `URL_CLEANUP_RETENTION_DAYS` days (default `30`). Overlap and single-server locks prevent duplicate scheduled runs; production nodes must share a persistent cache such as Redis for those locks.
+
+Add Laravel's scheduler to the production cron table on one or more application nodes:
+
+```cron
+* * * * * cd /path/to/url-shortener && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Preview the exact eligible set before changing retention or running cleanup manually:
+
+```bash
+php artisan urls:prune-lifecycle --dry-run --batch-size=100 --retention-days=30
+php artisan urls:prune-lifecycle --batch-size=100 --retention-days=30
+```
+
+Each run logs `url_lifecycle_cleanup_completed` with examined, deleted, skipped, and failed counters. Individual failures log `url_lifecycle_cleanup_record_failed`, do not stop later records, and make the command exit unsuccessfully for alerting. Re-running is safe.
+
+Take and verify a database backup before reducing retention or manually deleting a large backlog. Soft-deleted URLs remain recoverable directly from the database only until the cutoff; after cleanup, both those URLs and expired idempotent replay responses require backup restoration. To recover, stop scheduled cleanup, restore the affected rows from a backup into a staging database, verify them, and then copy only the required records into production before re-enabling the schedule.
 
 ## License
 

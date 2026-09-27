@@ -21,6 +21,7 @@ class OperationalMetricsTest extends TestCase
 
         $metrics->request('create', 'created', 12.5);
         $metrics->cache('read', 'hit');
+        $metrics->cleanup('url', 'deleted');
 
         $this->assertTrue($exporter->hasCounter('requests_total', [
             'operation' => 'create',
@@ -33,6 +34,10 @@ class OperationalMetricsTest extends TestCase
         $this->assertTrue($exporter->hasCounter('cache_operations_total', [
             'operation' => 'read',
             'outcome' => 'hit',
+        ]));
+        $this->assertTrue($exporter->hasCounter('lifecycle_cleanup_total', [
+            'record_type' => 'url',
+            'outcome' => 'deleted',
         ]));
     }
 
