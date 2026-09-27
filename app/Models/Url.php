@@ -16,8 +16,13 @@ class Url extends Model
     protected $fillable = [
         'long_url',
         'short_code',
+        'management_token_hash',
         'expires_at',
         'disabled_at',
+    ];
+
+    protected $hidden = [
+        'management_token_hash',
     ];
 
     /** @return array<string, string> */

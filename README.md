@@ -65,6 +65,8 @@ curl -X POST http://localhost:8000/api/v1/urls \
 
 Successful creation returns `201 Created`:
 
+The response includes an `X-Management-Token` header. Save this token immediately: it is returned only for a newly created URL and cannot be recovered later.
+
 ```json
 {
   "id": 1,
@@ -79,6 +81,24 @@ Successful creation returns `201 Created`:
 `expires_at` is optional and must be a future ISO-8601 timestamp with an explicit timezone. Values are normalized to UTC. The default maximum lifetime is 365 days and can be changed with `URL_MAX_LIFETIME_DAYS`.
 
 Repeating the request with the same idempotency key, URL, and expiration returns the stored response with `200 OK`. Using that key for another URL or expiration returns `409 Conflict`. The header is optional and has a maximum length of 255 characters.
+
+### Manage a short URL
+
+Management requests require the original `X-Management-Token` header:
+
+- `GET /api/v1/urls/{shortCode}` inspects lifecycle state.
+- `PATCH /api/v1/urls/{shortCode}` updates or clears `expires_at`.
+- `POST /api/v1/urls/{shortCode}/disable` disables redirects.
+- `POST /api/v1/urls/{shortCode}/enable` re-enables redirects unless the URL has expired.
+- `DELETE /api/v1/urls/{shortCode}` permanently removes anonymous management access and soft-deletes the URL.
+
+```bash
+curl -X POST http://localhost:8000/api/v1/urls/1/disable \
+  -H 'Accept: application/json' \
+  -H 'X-Management-Token: your-64-character-token'
+```
+
+Only a SHA-256 hash of the token is stored. Missing, incorrect, unknown, and deleted credentials return the same `404 Not Found` response. Tokens are never returned by idempotent replays, cannot be recovered, and should be kept out of URLs, logs, analytics, and source control.
 
 ### Follow a short URL
 

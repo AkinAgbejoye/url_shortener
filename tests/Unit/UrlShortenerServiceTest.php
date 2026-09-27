@@ -23,8 +23,10 @@ class UrlShortenerServiceTest extends TestCase
         $replayed = $service->shorten('https://example.com/original', 'request-key');
 
         $this->assertTrue($created['created']);
+        $this->assertIsString($created['management_token']);
         $this->assertFalse($replayed['created']);
         $this->assertFalse($replayed['conflict']);
+        $this->assertNull($replayed['management_token']);
         $this->assertSame($created['response'], $replayed['response']);
         $this->assertDatabaseCount('urls', 1);
         $this->assertDatabaseCount('idempotency_keys', 1);
