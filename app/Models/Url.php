@@ -16,6 +16,7 @@ class Url extends Model
     protected $fillable = [
         'long_url',
         'short_code',
+        'is_custom',
         'management_token_hash',
         'expires_at',
         'disabled_at',
@@ -29,6 +30,7 @@ class Url extends Model
     protected function casts(): array
     {
         return [
+            'is_custom' => 'boolean',
             'expires_at' => 'immutable_datetime',
             'disabled_at' => 'immutable_datetime',
             'deleted_at' => 'immutable_datetime',
