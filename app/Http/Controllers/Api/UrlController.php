@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUrlRequest;
+use App\Services\UrlCache;
 use App\Services\UrlResolver;
 use App\Services\UrlShortenerService;
 use App\Support\OperationalMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -18,6 +18,7 @@ class UrlController extends Controller
     public function store(
         StoreUrlRequest $request,
         UrlShortenerService $shortener,
+        UrlCache $urlCache,
         OperationalMetrics $metrics,
     ): JsonResponse {
         $startedAt = hrtime(true);
@@ -41,10 +42,9 @@ class UrlController extends Controller
 
             if ($result['created']) {
                 try {
-                    Cache::put(
-                        'url:'.$result['response']['short_code'],
+                    $urlCache->put(
+                        $result['response']['short_code'],
                         $result['response']['long_url'],
-                        now()->addHours(24),
                     );
                     $metrics->cache('write', 'success');
                 } catch (Throwable $exception) {
@@ -73,12 +73,12 @@ class UrlController extends Controller
         $outcome = 'error';
 
         try {
-            $longUrl = $resolver->resolve($shortCode);
-            $outcome = $longUrl === null ? 'not_found' : 'found';
+            $resolution = $resolver->resolve($shortCode);
+            $outcome = $resolution->outcome;
 
-            abort_if($longUrl === null, 404);
+            abort_unless($resolution->isFound(), 404);
 
-            return redirect()->away($longUrl);
+            return redirect()->away($resolution->destination);
         } finally {
             $metrics->request('redirect', $outcome, $this->elapsedMilliseconds($startedAt));
         }

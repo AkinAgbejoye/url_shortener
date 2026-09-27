@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Url;
 use App\Support\OperationalMetrics;
+use App\Support\UrlResolution;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -11,35 +12,37 @@ use Throwable;
 
 class UrlResolver
 {
-    public function __construct(private readonly OperationalMetrics $metrics) {}
+    public function __construct(
+        private readonly OperationalMetrics $metrics,
+        private readonly UrlCache $urlCache,
+    ) {}
 
-    public function resolve(string $shortCode): ?string
+    public function resolve(string $shortCode): UrlResolution
     {
-        $cacheKey = "url:{$shortCode}";
         $cacheOperation = 'read';
 
         try {
-            $cached = Cache::get($cacheKey);
-            if (is_string($cached) && $cached !== '') {
+            $cached = $this->urlCache->get($shortCode);
+            if ($cached !== null) {
                 $this->metrics->cache('read', 'hit');
 
-                return $cached;
+                return UrlResolution::found($cached);
             }
             $this->metrics->cache('read', 'miss');
 
             $cacheOperation = 'lock';
             $resolved = Cache::lock("lock:cache-rebuild:{$shortCode}", 10)
-                ->block(1, function () use (&$cacheOperation, $cacheKey, $shortCode): ?string {
+                ->block(1, function () use (&$cacheOperation, $shortCode): UrlResolution {
                     $cacheOperation = 'read';
-                    $cached = Cache::get($cacheKey);
-                    if (is_string($cached) && $cached !== '') {
+                    $cached = $this->urlCache->get($shortCode);
+                    if ($cached !== null) {
                         $this->metrics->cache('read', 'hit');
 
-                        return $cached;
+                        return UrlResolution::found($cached);
                     }
                     $this->metrics->cache('read', 'miss');
 
-                    return $this->resolveFromDatabase($shortCode, $cacheKey, $cacheOperation);
+                    return $this->resolveFromDatabase($shortCode, $cacheOperation);
                 });
 
             return $resolved;
@@ -59,22 +62,31 @@ class UrlResolver
             ]);
         }
 
-        return Url::where('short_code', $shortCode)->value('long_url');
+        return $this->resolveFromDatabase($shortCode, $cacheOperation, false);
     }
 
     private function resolveFromDatabase(
         string $shortCode,
-        string $cacheKey,
         string &$cacheOperation,
-    ): ?string {
-        $longUrl = Url::where('short_code', $shortCode)->value('long_url');
-        if ($longUrl !== null) {
+        bool $writeCache = true,
+    ): UrlResolution {
+        $url = Url::withTrashed()->where('short_code', $shortCode)->first();
+        if ($url === null) {
+            return UrlResolution::missing();
+        }
+
+        $state = $url->lifecycleState();
+        if (! $url->isActive()) {
+            return UrlResolution::unavailable($state);
+        }
+
+        if ($writeCache) {
             $cacheOperation = 'write';
-            Cache::put($cacheKey, $longUrl, now()->addHours(24));
+            $this->urlCache->put($shortCode, $url->long_url, $url->expires_at);
             $this->metrics->cache('write', 'success');
         }
 
-        return $longUrl;
+        return UrlResolution::found($url->long_url);
     }
 
     /** @return array{request_id: mixed, url_path: string|null} */

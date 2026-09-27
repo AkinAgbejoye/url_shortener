@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Url;
+use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -31,7 +32,7 @@ class UrlControllerTest extends TestCase
             'short_code' => '1',
             'long_url' => 'https://example.com/a/long/path',
         ]);
-        $this->assertSame('https://example.com/a/long/path', Cache::get('url:1'));
+        $this->assertSame('https://example.com/a/long/path', Cache::get('url:1')['long_url']);
     }
 
     public function test_it_returns_the_created_url_when_the_cache_write_fails(): void
@@ -40,7 +41,13 @@ class UrlControllerTest extends TestCase
         Log::spy();
         Cache::shouldReceive('put')
             ->once()
-            ->with('url:1', 'https://example.com/cache-failure', \Mockery::type(\DateTimeInterface::class))
+            ->with(
+                'url:1',
+                \Mockery::on(fn (array $payload): bool => $payload['version'] === 1
+                    && $payload['long_url'] === 'https://example.com/cache-failure'
+                    && $payload['expires_at'] === null),
+                \Mockery::type(\DateTimeInterface::class),
+            )
             ->andThrow(new RuntimeException('Redis write failed'));
 
         $this->withHeader('X-Request-ID', 'cache-write-request')
@@ -139,7 +146,11 @@ class UrlControllerTest extends TestCase
 
     public function test_it_redirects_from_the_cache(): void
     {
-        Cache::put('url:cached', 'https://cached.example');
+        Cache::put('url:cached', [
+            'version' => 1,
+            'long_url' => 'https://cached.example',
+            'expires_at' => null,
+        ]);
 
         $this->get('/cached')
             ->assertRedirect('https://cached.example');
@@ -153,7 +164,54 @@ class UrlControllerTest extends TestCase
         $this->get('/database')
             ->assertRedirect('https://database.example');
 
-        $this->assertSame('https://database.example', Cache::get('url:database'));
+        $this->assertSame('https://database.example', Cache::get('url:database')['long_url']);
+    }
+
+    public function test_an_expired_url_does_not_redirect(): void
+    {
+        Url::create([
+            'short_code' => 'expired',
+            'long_url' => 'https://expired.example',
+            'expires_at' => CarbonImmutable::now()->subSecond(),
+        ]);
+
+        $this->get('/expired')->assertNotFound();
+        $this->assertNull(Cache::get('url:expired'));
+    }
+
+    public function test_a_disabled_url_does_not_redirect(): void
+    {
+        Url::create([
+            'short_code' => 'disabled',
+            'long_url' => 'https://disabled.example',
+            'disabled_at' => CarbonImmutable::now(),
+        ]);
+
+        $this->get('/disabled')->assertNotFound();
+    }
+
+    public function test_a_soft_deleted_url_does_not_redirect(): void
+    {
+        $url = Url::create([
+            'short_code' => 'deleted',
+            'long_url' => 'https://deleted.example',
+        ]);
+        $url->delete();
+
+        $this->get('/deleted')->assertNotFound();
+    }
+
+    public function test_a_legacy_cache_value_cannot_bypass_an_expired_database_record(): void
+    {
+        Url::create([
+            'short_code' => 'stale',
+            'long_url' => 'https://stale.example',
+            'expires_at' => CarbonImmutable::now()->subMinute(),
+        ]);
+        Cache::put('url:stale', 'https://stale.example', now()->addHour());
+
+        $this->get('/stale')->assertNotFound();
+        $this->assertNull(Cache::get('url:stale'));
     }
 
     public function test_it_falls_back_to_the_database_and_logs_a_cache_failure(): void

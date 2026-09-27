@@ -13,7 +13,17 @@ class OperationalMetrics
 
     private const REQUEST_OPERATIONS = ['create', 'redirect'];
 
-    private const REQUEST_OUTCOMES = ['conflict', 'created', 'error', 'found', 'not_found', 'replayed'];
+    private const REQUEST_OUTCOMES = [
+        'conflict',
+        'created',
+        'deleted',
+        'disabled',
+        'error',
+        'expired',
+        'found',
+        'not_found',
+        'replayed',
+    ];
 
     public function __construct(private readonly MetricsExporter $exporter) {}
 

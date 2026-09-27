@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\MetricsExporter;
 use App\Metrics\SafeMetricsExporter;
 use App\Models\Url;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
@@ -101,6 +102,34 @@ class OperationalMetricsTest extends TestCase
             'operation' => 'read',
             'outcome' => 'failure',
         ]));
+    }
+
+    public function test_lifecycle_redirect_outcomes_are_distinct(): void
+    {
+        $metrics = $this->recordMetrics();
+        Url::create([
+            'short_code' => 'expired-metric',
+            'long_url' => 'https://expired.example',
+            'expires_at' => CarbonImmutable::now()->subSecond(),
+        ]);
+        Url::create([
+            'short_code' => 'disabled-metric',
+            'long_url' => 'https://disabled.example',
+            'disabled_at' => CarbonImmutable::now(),
+        ]);
+        $deleted = Url::create([
+            'short_code' => 'deleted-metric',
+            'long_url' => 'https://deleted.example',
+        ]);
+        $deleted->delete();
+
+        foreach (['expired', 'disabled', 'deleted'] as $outcome) {
+            $this->get("/{$outcome}-metric")->assertNotFound();
+            $this->assertTrue($metrics->hasCounter('requests_total', [
+                'operation' => 'redirect',
+                'outcome' => $outcome,
+            ]));
+        }
     }
 
     public function test_exporter_failures_do_not_change_the_application_response(): void
