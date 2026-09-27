@@ -25,9 +25,11 @@ class UrlController extends Controller
         $outcome = 'error';
 
         try {
+            $expiresAt = $request->expiresAt();
             $result = $shortener->shorten(
                 $request->validated('long_url'),
                 $request->idempotencyKey(),
+                $expiresAt,
             );
 
             if ($result['conflict']) {
@@ -45,6 +47,7 @@ class UrlController extends Controller
                     $urlCache->put(
                         $result['response']['short_code'],
                         $result['response']['long_url'],
+                        $expiresAt,
                     );
                     $metrics->cache('write', 'success');
                 } catch (Throwable $exception) {

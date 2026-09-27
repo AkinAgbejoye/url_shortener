@@ -26,7 +26,9 @@ class UrlControllerTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('short_code', '1')
             ->assertJsonPath('long_url', 'https://example.com/a/long/path')
-            ->assertJsonPath('short_url', 'http://localhost/1');
+            ->assertJsonPath('short_url', 'http://localhost/1')
+            ->assertJsonPath('expires_at', null)
+            ->assertJsonPath('status', 'active');
 
         $this->assertDatabaseHas('urls', [
             'short_code' => '1',
@@ -88,6 +90,69 @@ class UrlControllerTest extends TestCase
         $this->postJson('/api/v1/urls', ['long_url' => 'ftp://example.com/file'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('long_url');
+    }
+
+    public function test_it_normalizes_and_persists_a_valid_expiration_in_utc(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-27T08:00:00Z'));
+
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/expiring',
+            'expires_at' => '2026-09-28T10:30:00+02:00',
+        ])->assertCreated()
+            ->assertJsonPath('expires_at', '2026-09-28T08:30:00+00:00')
+            ->assertJsonPath('status', 'active');
+
+        $url = Url::where('short_code', '1')->firstOrFail();
+        $this->assertSame('2026-09-28T08:30:00+00:00', $url->expires_at->toIso8601String());
+        $this->assertSame('2026-09-28T08:30:00+00:00', Cache::get('url:1')['expires_at']);
+    }
+
+    public function test_it_rejects_malformed_past_and_excessive_expirations(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-27T08:00:00Z'));
+        config(['url_shortener.max_lifetime_days' => 30]);
+
+        $invalidExpirations = [
+            ['tomorrow', 'The expiration must be a valid ISO-8601 timestamp with a timezone.'],
+            ['2026-09-27T07:59:59Z', 'The expiration must be in the future.'],
+            ['2026-10-28T08:00:00Z', 'The expiration may not be more than 30 days in the future.'],
+        ];
+
+        foreach ($invalidExpirations as [$expiresAt, $message]) {
+            $this->postJson('/api/v1/urls', [
+                'long_url' => 'https://example.com/invalid-expiration',
+                'expires_at' => $expiresAt,
+            ])->assertUnprocessable()
+                ->assertJsonPath('message', $message)
+                ->assertJsonPath('errors.expires_at.0', $message);
+        }
+
+        $this->assertDatabaseCount('urls', 0);
+    }
+
+    public function test_idempotency_replays_equivalent_expiration_instants_and_conflicts_on_changes(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-27T08:00:00Z'));
+        $headers = ['Idempotency-Key' => 'expiring-request'];
+
+        $original = $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/idempotent-expiration',
+            'expires_at' => '2026-09-28T10:00:00+02:00',
+        ], $headers)->assertCreated();
+
+        $replay = $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/idempotent-expiration',
+            'expires_at' => '2026-09-28T08:00:00Z',
+        ], $headers)->assertOk();
+
+        $this->assertSame($original->json(), $replay->json());
+
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/idempotent-expiration',
+            'expires_at' => '2026-09-29T08:00:00Z',
+        ], $headers)->assertConflict();
+        $this->assertDatabaseCount('urls', 1);
     }
 
     public function test_an_idempotency_key_replays_the_original_response(): void
