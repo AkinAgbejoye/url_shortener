@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Optional URL expiration with strict ISO-8601 validation, UTC normalization, and idempotent replay protection.
 - One-time management tokens and protected inspect, expiration, disable, enable, and delete endpoints.
 - Accessible browser controls for expiration and token-backed lifecycle management of recent links.
+- Bounded lifecycle cleanup with dry-run support, metrics, failure isolation, and scheduler overlap protection.
 
 ### Changed
 

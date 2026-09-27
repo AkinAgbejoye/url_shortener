@@ -11,6 +11,10 @@ class OperationalMetrics
 
     private const CACHE_OUTCOMES = ['failure', 'hit', 'miss', 'success'];
 
+    private const CLEANUP_RECORD_TYPES = ['idempotency_key', 'url'];
+
+    private const CLEANUP_OUTCOMES = ['deleted', 'examined', 'failed', 'skipped'];
+
     private const REQUEST_OPERATIONS = ['create', 'redirect'];
 
     private const REQUEST_OUTCOMES = [
@@ -44,6 +48,17 @@ class OperationalMetrics
 
         $this->exporter->increment('cache_operations_total', [
             'operation' => $operation,
+            'outcome' => $outcome,
+        ]);
+    }
+
+    public function cleanup(string $recordType, string $outcome): void
+    {
+        $this->ensureAllowed($recordType, self::CLEANUP_RECORD_TYPES, 'cleanup record type');
+        $this->ensureAllowed($outcome, self::CLEANUP_OUTCOMES, 'cleanup outcome');
+
+        $this->exporter->increment('lifecycle_cleanup_total', [
+            'record_type' => $recordType,
             'outcome' => $outcome,
         ]);
     }
