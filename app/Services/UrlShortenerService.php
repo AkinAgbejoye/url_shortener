@@ -13,7 +13,7 @@ class UrlShortenerService
 {
     public function __construct(private readonly Base62Service $base62) {}
 
-    /** @return array{response: array<string, mixed>, created: bool, conflict: bool} */
+    /** @return array{response: array<string, mixed>, created: bool, conflict: bool, management_token: string|null} */
     public function shorten(
         string $longUrl,
         ?string $idempotencyKey,
@@ -30,10 +30,12 @@ class UrlShortenerService
 
         try {
             return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash, $expiresAt): array {
+                $managementToken = bin2hex(random_bytes(32));
                 $url = Url::create([
                     'long_url' => $longUrl,
                     'short_code' => 'pending-'.Str::uuid(),
                     'expires_at' => $expiresAt,
+                    'management_token_hash' => hash('sha256', $managementToken),
                 ]);
                 $shortCode = $this->base62->encode($url->id);
                 $url->update(['short_code' => $shortCode]);
@@ -55,7 +57,12 @@ class UrlShortenerService
                     ]);
                 }
 
-                return ['response' => $response, 'created' => true, 'conflict' => false];
+                return [
+                    'response' => $response,
+                    'created' => true,
+                    'conflict' => false,
+                    'management_token' => $managementToken,
+                ];
             });
         } catch (QueryException $exception) {
             $existing = $idempotencyKey === null
@@ -70,13 +77,14 @@ class UrlShortenerService
         }
     }
 
-    /** @return array{response: array<string, mixed>, created: bool, conflict: bool} */
+    /** @return array{response: array<string, mixed>, created: bool, conflict: bool, management_token: null} */
     private function replay(IdempotencyKey $existing, string $requestHash): array
     {
         return [
             'response' => $existing->response,
             'created' => false,
             'conflict' => ! hash_equals($existing->request_hash, $requestHash),
+            'management_token' => null,
         ];
     }
 

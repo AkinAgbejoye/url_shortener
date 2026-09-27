@@ -61,7 +61,13 @@ class UrlController extends Controller
                 }
             }
 
-            return response()->json($result['response'], $result['created'] ? 201 : 200);
+            $response = response()->json($result['response'], $result['created'] ? 201 : 200);
+
+            if ($result['management_token'] !== null) {
+                $response->header('X-Management-Token', $result['management_token']);
+            }
+
+            return $response;
         } finally {
             $metrics->request('create', $outcome, $this->elapsedMilliseconds($startedAt));
         }
