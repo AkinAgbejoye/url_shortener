@@ -42,7 +42,10 @@ class OperationalMetricsTest extends TestCase
         ]));
 
         foreach ([...$metrics->counters, ...$metrics->timings] as $metric) {
-            $this->assertSame(['operation', 'outcome'], array_keys($metric['labels']));
+            $this->assertContains(array_keys($metric['labels']), [
+                ['operation', 'outcome'],
+                ['type', 'outcome'],
+            ]);
             $this->assertNotContains('https://example.com/private-path', $metric['labels']);
             $this->assertNotContains('1', $metric['labels']);
         }
@@ -84,6 +87,44 @@ class OperationalMetricsTest extends TestCase
                 'operation' => 'create',
                 'outcome' => $outcome,
             ]));
+        }
+    }
+
+    public function test_alias_allocation_metrics_are_bounded_and_privacy_safe(): void
+    {
+        $metrics = $this->recordMetrics();
+
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://private.example/custom-path',
+            'custom_alias' => 'private-campaign',
+        ])->assertCreated();
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://private.example/generated-path',
+        ])->assertCreated();
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://private.example/conflict-path',
+            'custom_alias' => 'private-campaign',
+        ])->assertConflict();
+
+        foreach ([
+            ['type' => 'custom', 'outcome' => 'claimed'],
+            ['type' => 'generated', 'outcome' => 'claimed'],
+            ['type' => 'custom', 'outcome' => 'conflict'],
+        ] as $labels) {
+            $this->assertTrue($metrics->hasCounter('alias_allocations_total', $labels));
+        }
+
+        foreach (array_filter(
+            $metrics->counters,
+            fn (array $metric): bool => $metric['name'] === 'alias_allocations_total',
+        ) as $metric) {
+            $this->assertNotContains('private-campaign', $metric['labels']);
+            $this->assertNotContains('https://private.example/custom-path', $metric['labels']);
+            $this->assertSame(
+                ['type', 'outcome'],
+                array_keys($metric['labels']),
+                "Unexpected labels on {$metric['name']}.",
+            );
         }
     }
 

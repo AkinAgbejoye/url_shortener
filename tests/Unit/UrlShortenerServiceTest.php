@@ -9,9 +9,12 @@ use App\Models\Url;
 use App\Services\Base62Service;
 use App\Services\ShortCodeAllocator;
 use App\Services\UrlShortenerService;
+use App\Support\OperationalMetrics;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Tests\Fakes\RecordingMetricsExporter;
 use Tests\TestCase;
 
 class UrlShortenerServiceTest extends TestCase
@@ -137,6 +140,9 @@ class UrlShortenerServiceTest extends TestCase
 
     public function test_a_claimed_custom_alias_is_rejected_by_the_unique_constraint(): void
     {
+        Log::spy();
+        $metrics = new RecordingMetricsExporter;
+        $this->app->instance(OperationalMetrics::class, new OperationalMetrics($metrics));
         Url::create([
             'short_code' => 'product-launch',
             'long_url' => 'https://existing.example',
@@ -154,11 +160,25 @@ class UrlShortenerServiceTest extends TestCase
         } finally {
             $this->assertDatabaseCount('urls', 1);
             $this->assertDatabaseCount('idempotency_keys', 0);
+            $this->assertTrue($metrics->hasCounter('alias_allocations_total', [
+                'type' => 'custom',
+                'outcome' => 'conflict',
+            ]));
+            Log::shouldHaveReceived('info')
+                ->once()
+                ->with('url_alias_allocation_conflict', \Mockery::on(
+                    fn (array $context): bool => $context === [
+                        'alias_type' => 'custom',
+                        'outcome' => 'conflict',
+                    ]
+                ));
         }
     }
 
     public function test_generated_allocation_uses_a_deterministic_fallback_after_a_collision(): void
     {
+        Log::spy();
+        $metrics = new RecordingMetricsExporter;
         Url::create([
             'short_code' => 'claimed',
             'long_url' => 'https://existing.example',
@@ -171,12 +191,32 @@ class UrlShortenerServiceTest extends TestCase
                 return 'claimed';
             }
         };
-        $service = new UrlShortenerService(new ShortCodeAllocator($base62));
+        $service = new UrlShortenerService(
+            new ShortCodeAllocator($base62, new OperationalMetrics($metrics)),
+        );
 
         $result = $service->shorten('https://generated.example', null);
 
         $this->assertSame('claimed-1', $result['response']['short_code']);
         $this->assertFalse(Url::where('short_code', 'claimed-1')->firstOrFail()->is_custom);
+        $this->assertTrue($metrics->hasCounter('alias_allocations_total', [
+            'type' => 'generated',
+            'outcome' => 'retry',
+        ]));
+        $this->assertTrue($metrics->hasCounter('alias_allocations_total', [
+            'type' => 'generated',
+            'outcome' => 'claimed',
+        ]));
+        Log::shouldHaveReceived('info')
+            ->once()
+            ->with('url_alias_allocation_retry', \Mockery::on(
+                fn (array $context): bool => $context === [
+                    'alias_type' => 'generated',
+                    'outcome' => 'retry',
+                    'attempt' => 1,
+                    'max_attempts' => 20,
+                ]
+            ));
     }
 
     public function test_generated_allocation_stops_after_the_configured_attempt_limit(): void

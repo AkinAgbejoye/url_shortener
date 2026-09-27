@@ -50,3 +50,43 @@ test('a visitor can shorten, copy, remember, and follow a URL', async ({ page, c
 
     await expect(destinationPage.locator('body')).toContainText('"status":"ok"');
 });
+
+test('a visitor can create, manage, and recover from custom alias collisions', async ({ page, context }) => {
+    await page.goto('/');
+
+    const destination = 'http://127.0.0.1:8011/api/health';
+    const alias = `campaign-${Date.now()}`;
+    const retryAlias = `${alias}-retry`;
+
+    await page.getByLabel('Long URL').fill(destination);
+    await page.getByLabel('Custom alias').fill(`  ${alias.toUpperCase()}  `);
+    await page.getByRole('button', { name: 'Shorten URL' }).click();
+
+    const result = page.locator('#short-url-result');
+    await expect(result.getByRole('link', { name: `http://127.0.0.1:8011/${alias}` })).toBeVisible();
+    await expect(page.locator('#recent-links-list')).toContainText(`http://127.0.0.1:8011/${alias}`);
+
+    await result.getByRole('button', { name: 'Disable link' }).click();
+    await expect(result.getByRole('button', { name: 'Enable link' })).toBeVisible();
+    await expect(result).toContainText('Disabled');
+    await result.getByRole('button', { name: 'Enable link' }).click();
+    await expect(result.getByRole('button', { name: 'Disable link' })).toBeVisible();
+
+    const newPagePromise = context.waitForEvent('page');
+    await result.getByRole('link', { name: `http://127.0.0.1:8011/${alias}` }).click();
+    const destinationPage = await newPagePromise;
+    await destinationPage.waitForLoadState();
+    await expect(destinationPage.locator('body')).toContainText('"status":"ok"');
+
+    await page.getByRole('button', { name: 'Shorten another' }).click();
+    await page.getByLabel('Long URL').fill('https://example.com/collision-retry');
+    await page.getByLabel('Custom alias').fill(alias);
+    await page.getByRole('button', { name: 'Shorten URL' }).click();
+
+    await expect(page.locator('#custom-alias-error')).toHaveText('The custom alias has already been taken.');
+    await expect(page.getByLabel('Long URL')).toHaveValue('https://example.com/collision-retry');
+
+    await page.getByLabel('Custom alias').fill(retryAlias);
+    await page.getByRole('button', { name: 'Shorten URL' }).click();
+    await expect(result.getByRole('link', { name: `http://127.0.0.1:8011/${retryAlias}` })).toBeVisible();
+});

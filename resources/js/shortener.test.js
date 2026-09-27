@@ -3,13 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initShortener } from './shortener';
 
 const page = () => `
-    <form id="shortener-form" data-endpoint="/api/v1/urls">
+    <form id="shortener-form" data-endpoint="/api/v1/urls" data-url-prefix="http://localhost/">
         <div data-input-shell class="ring-slate-200">
             <input id="long-url" name="long_url">
         </div>
         <p id="long-url-error" class="hidden"></p>
         <input id="expires-at" name="expires_at" type="datetime-local">
         <p id="expires-at-error" class="hidden"></p>
+        <div data-alias-shell class="border-slate-200">
+            <span data-url-prefix></span>
+            <input id="custom-alias" name="custom_alias">
+        </div>
+        <p id="custom-alias-error" class="hidden"></p>
         <button id="shorten-button" type="submit">
             <span data-button-label>Shorten URL</span>
             <svg data-button-arrow></svg>
@@ -75,6 +80,120 @@ describe('URL shortener form', () => {
         );
         expect(getByRole(document.body, 'button', { name: 'Shorten URL' }).disabled).toBe(false);
         expect(document.querySelector('#short-url-result').textContent).not.toContain('Disable link');
+    });
+
+    it('normalizes and submits a valid custom alias', async () => {
+        fetch.mockResolvedValue(
+            response({
+                short_code: 'spring-sale',
+                long_url: 'https://example.com/campaign',
+                short_url: 'http://localhost/spring-sale',
+            }),
+        );
+
+        document.querySelector('#long-url').value = 'https://example.com/campaign';
+        document.querySelector('#custom-alias').value = '  Spring-Sale  ';
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#short-url-result'), 'link', {
+                    name: 'http://localhost/spring-sale',
+                }),
+            ).toBeTruthy(),
+        );
+        expect(document.querySelector('#custom-alias').value).toBe('spring-sale');
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/v1/urls',
+            expect.objectContaining({
+                body: JSON.stringify({
+                    long_url: 'https://example.com/campaign',
+                    custom_alias: 'spring-sale',
+                }),
+            }),
+        );
+        expect(JSON.parse(localStorage.getItem('shortly.recent-links'))[0].short_code).toBe('spring-sale');
+    });
+
+    it('normalizes aliases on blur and rejects invalid aliases before submitting', () => {
+        const input = document.querySelector('#custom-alias');
+        document.querySelector('#long-url').value = 'https://example.com/campaign';
+
+        input.value = '  Bad--Alias  ';
+        fireEvent.blur(input);
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        expect(input.value).toBe('bad--alias');
+        expect(fetch).not.toHaveBeenCalled();
+        expect(document.querySelector('#custom-alias-error').textContent).toBe(
+            'The custom alias may contain letters, numbers, and single hyphens between groups.',
+        );
+        expect(document.activeElement).toBe(input);
+    });
+
+    it('rejects reserved aliases before submitting', () => {
+        document.querySelector('#long-url').value = 'https://example.com/campaign';
+        document.querySelector('#custom-alias').value = 'API';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        expect(fetch).not.toHaveBeenCalled();
+        expect(document.querySelector('#custom-alias-error').textContent).toBe(
+            'The custom alias is reserved and cannot be used.',
+        );
+    });
+
+    it('renders alias conflicts beside the alias field and allows retry', async () => {
+        fetch
+            .mockResolvedValueOnce(
+                response(
+                    {
+                        message: 'The custom alias has already been taken.',
+                        errors: { custom_alias: ['The custom alias has already been taken.'] },
+                    },
+                    409,
+                ),
+            )
+            .mockResolvedValueOnce(
+                response({
+                    short_code: 'new-campaign',
+                    long_url: 'https://example.com/campaign',
+                    short_url: 'http://localhost/new-campaign',
+                }),
+            );
+        document.querySelector('#long-url').value = 'https://example.com/campaign';
+        document.querySelector('#custom-alias').value = 'campaign';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(document.querySelector('#custom-alias-error').textContent).toBe(
+                'The custom alias has already been taken.',
+            ),
+        );
+        expect(document.querySelector('#long-url').value).toBe('https://example.com/campaign');
+        expect(document.querySelector('#custom-alias').value).toBe('campaign');
+
+        document.querySelector('#custom-alias').value = 'new-campaign';
+        fireEvent.input(document.querySelector('#custom-alias'));
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#short-url-result'), 'link', {
+                    name: 'http://localhost/new-campaign',
+                }),
+            ).toBeTruthy(),
+        );
+        expect(fetch).toHaveBeenLastCalledWith(
+            '/api/v1/urls',
+            expect.objectContaining({
+                body: JSON.stringify({
+                    long_url: 'https://example.com/campaign',
+                    custom_alias: 'new-campaign',
+                }),
+            }),
+        );
     });
 
     it('rejects invalid input before making an API request', () => {

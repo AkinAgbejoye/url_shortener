@@ -6,8 +6,9 @@ A URL-shortening API built with Laravel 12. It generates deterministic Base62 sh
 
 - **Database:** source of truth for URLs and idempotency records.
 - **Cache:** optional acceleration layer for redirects. Cache errors are logged and requests fall back to the database.
-- **Base62:** converts each database ID into a compact, unique short code.
-- **Idempotency:** repeated requests with the same `Idempotency-Key` and payload replay the original response. Reusing a key with a different URL returns `409 Conflict`.
+- **Base62:** converts each database ID into a compact, unique generated short code and retries bounded fallback candidates if a concurrent claim collides.
+- **Custom aliases:** callers may request a memorable code that is validated, normalized, and claimed atomically.
+- **Idempotency:** repeated requests with the same `Idempotency-Key` and payload replay the original response. Reusing a key with a different URL, expiration, or alias returns `409 Conflict`.
 
 ## Requirements
 
@@ -60,7 +61,7 @@ curl -X POST http://localhost:8000/api/v1/urls \
   -H 'Accept: application/json' \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: homepage-001' \
-  -d '{"long_url":"https://example.com/a/long/path","expires_at":"2027-01-01T00:00:00Z"}'
+  -d '{"long_url":"https://example.com/a/long/path","custom_alias":"launch-page","expires_at":"2027-01-01T00:00:00Z"}'
 ```
 
 Successful creation returns `201 Created`:
@@ -70,8 +71,8 @@ The response includes an `X-Management-Token` header. Save this token immediatel
 ```json
 {
   "id": 1,
-  "short_code": "1",
-  "short_url": "http://localhost:8000/1",
+  "short_code": "launch-page",
+  "short_url": "http://localhost:8000/launch-page",
   "long_url": "https://example.com/a/long/path",
   "expires_at": "2027-01-01T00:00:00+00:00",
   "status": "active"
@@ -80,7 +81,20 @@ The response includes an `X-Management-Token` header. Save this token immediatel
 
 `expires_at` is optional and must be a future ISO-8601 timestamp with an explicit timezone. Values are normalized to UTC. The default maximum lifetime is 365 days and can be changed with `URL_MAX_LIFETIME_DAYS`.
 
-Repeating the request with the same idempotency key, URL, and expiration returns the stored response with `200 OK`. Using that key for another URL or expiration returns `409 Conflict`. The header is optional and has a maximum length of 255 characters.
+`custom_alias` is optional. Empty or omitted aliases keep generated-code behavior. Provided aliases are trimmed, lowercased, and must be 3-48 characters of lowercase letters, numbers, and single hyphens between groups, such as `spring-sale-2027`. The reserved route names `admin`, `api`, `assets`, `build`, `dashboard`, `health`, `login`, `logout`, `register`, `status`, `storage`, and `up` cannot be claimed. Defaults can be changed with `URL_ALIAS_MIN_LENGTH`, `URL_ALIAS_MAX_LENGTH`, and `config/url_shortener.php`.
+
+Duplicate custom aliases return `409 Conflict` with a field-specific error:
+
+```json
+{
+  "message": "The custom alias has already been taken.",
+  "errors": {
+    "custom_alias": ["The custom alias has already been taken."]
+  }
+}
+```
+
+Repeating the request with the same idempotency key, URL, expiration, and canonical alias returns the stored response with `200 OK`. Using that key for another URL, expiration, or alias returns `409 Conflict`. The header is optional and has a maximum length of 255 characters. Generated links remain available under concurrent short-code collisions because the allocator retries bounded fallback candidates before failing the request.
 
 ### Manage a short URL
 
@@ -100,7 +114,7 @@ curl -X POST http://localhost:8000/api/v1/urls/1/disable \
 
 Only a SHA-256 hash of the token is stored. Missing, incorrect, unknown, and deleted credentials return the same `404 Not Found` response. Tokens are never returned by idempotent replays, cannot be recovered, and should be kept out of URLs, logs, analytics, and source control.
 
-The browser UI can set expiration in local time and stores recent-link management tokens in local storage so it can update expiration, disable, enable, or delete those links later. Tokens are never rendered into page markup. Clearing recent history or browser storage permanently removes this local management access.
+The browser UI can request custom aliases, set expiration in local time, and store recent-link management tokens in local storage so it can update expiration, disable, enable, or delete those links later. Tokens are never rendered into page markup. Clearing recent history or browser storage permanently removes this local management access.
 
 ### Follow a short URL
 
@@ -125,7 +139,7 @@ npm audit --audit-level=high
 npm run build
 ```
 
-Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, validation, idempotency, transaction rollback, cache concurrency and failures, redirects, Base62 conversion, form submission, errors, clipboard behavior, history, themes, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. Successful CI runs retain a machine-readable Clover report as the `backend-coverage-clover` artifact for 14 days.
+Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, custom aliases, validation, idempotency, transaction rollback, generated collision fallback, cache concurrency and failures, redirects, Base62 conversion, form submission, field-specific errors, clipboard behavior, history, themes, lifecycle management, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. Successful CI runs retain a machine-readable Clover report as the `backend-coverage-clover` artifact for 14 days.
 
 GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, Prettier, dependency audits, and the frontend build on every pull request and push to `main`. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
 
@@ -134,13 +148,15 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 - Configure a persistent database and `CACHE_STORE=redis` in production.
 - Keep `APP_DEBUG=false` and provide a unique `APP_KEY`.
 - Metrics are disabled by default. Set `METRICS_DRIVER=statsd` and configure `METRICS_STATSD_HOST`, `METRICS_STATSD_PORT`, and `METRICS_PREFIX` to send counters and timings to a StatsD-compatible agent.
-- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, `<prefix>.cache_operations_total`, and `<prefix>.lifecycle_cleanup_total`. Their bounded labels describe only operation, outcome, and cleanup record type; URLs, short codes, request IDs, idempotency keys, IP addresses, and user agents are never exported.
-- Useful starting alerts are any sustained cache operation failure, a request `error` rate above 1% for five minutes, or p95 request duration above 250 ms. Tune these thresholds from observed production traffic.
+- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, `<prefix>.cache_operations_total`, `<prefix>.alias_allocations_total`, and `<prefix>.lifecycle_cleanup_total`. Their bounded labels describe only operation, outcome, alias type, and cleanup record type; aliases, URLs, short codes, request IDs, management tokens, idempotency keys, IP addresses, and user agents are never exported.
+- Useful starting alerts are any sustained cache operation failure, a request `error` rate above 1% for five minutes, p95 request duration above 250 ms, custom alias conflict spikes above the normal campaign baseline, or any generated alias exhaustion event. Tune these thresholds from observed production traffic.
 - Unhandled exceptions are written as JSON to `storage/logs/exceptions-YYYY-MM-DD.log` through the dedicated `LOG_EXCEPTION_CHANNEL`. Set that variable to another configured channel such as `stderr` or `papertrail` for external collection, or to `null` to disable reporting.
 - External exception delivery is disabled when `SENTRY_LARAVEL_DSN` is empty. To enable Sentry, set that DSN plus `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE`; use `SENTRY_SAMPLE_RATE` from `0.0` to `1.0` to control the proportion of error events sent.
 - Sentry is used only as an exception transport. Automatic integrations, performance tracing, logs, metrics, and breadcrumbs are disabled. Reports retain the exception type and stack with a generic message, plus the request ID, URL path, HTTP method, and bounded user-agent. A final sanitizer removes request bodies, query strings, full URLs, credentials, headers, idempotency keys, user data, breadcrumbs, extras, and stack variables.
 - Local and external reporting failures are isolated and never alter the original application response.
 - The creation endpoint is limited to 10 requests per minute per client.
+- Treat custom aliases as a public namespace. Keep the reserved list aligned with current and planned routes, monitor conflict-rate spikes for abuse or enumeration, and avoid placing sensitive campaign names in aliases before they are public.
+- Alias allocation logs use structured event names such as `url_alias_allocation_conflict`, `url_alias_allocation_retry`, and `url_alias_allocation_exhausted` with bounded context only. They never include the requested alias, destination URL, management token, or idempotency key.
 - Versioned cache entries expire after 24 hours or at the URL expiration time, whichever comes first, and are rebuilt from the database on demand. Legacy, malformed, unsafe, and expired cache values are discarded.
 
 ### Lifecycle cleanup
