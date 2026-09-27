@@ -63,32 +63,45 @@
 
                 <section class="mt-10 w-full max-w-3xl" aria-labelledby="shortener-heading">
                     <h2 id="shortener-heading" class="sr-only">Shorten a URL</h2>
-                    <form id="shortener-form" class="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-2xl shadow-slate-300/30 backdrop-blur sm:flex sm:items-end sm:gap-3 sm:p-4 dark:border-white/10 dark:bg-white/[0.07] dark:shadow-black/20" data-endpoint="/api/v1/urls" aria-describedby="url-requirements" novalidate>
-                        <div class="flex-1 text-left">
-                            <label for="long-url" class="sr-only">Long URL</label>
-                            <div data-input-shell class="flex items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
-                                <svg class="size-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
-                                </svg>
-                                <input id="long-url" name="long_url" type="url" inputmode="url" autocomplete="url" placeholder="Paste your long URL here" class="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-950 outline-none placeholder:text-slate-400" aria-describedby="url-requirements long-url-error" required>
+                    <form id="shortener-form" class="rounded-2xl border border-slate-200 bg-white/80 p-3 text-left shadow-2xl shadow-slate-300/30 backdrop-blur sm:p-4 dark:border-white/10 dark:bg-white/[0.07] dark:shadow-black/20" data-endpoint="/api/v1/urls" data-url-prefix="{{ url('/') }}/" aria-describedby="url-requirements" novalidate>
+                        <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.42fr)_auto] lg:items-start">
+                            <div>
+                                <label for="long-url" class="sr-only">Long URL</label>
+                                <div data-input-shell class="flex items-center gap-3 rounded-xl bg-white px-4 ring-1 ring-inset ring-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
+                                    <svg class="size-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+                                    </svg>
+                                    <input id="long-url" name="long_url" type="url" inputmode="url" autocomplete="url" placeholder="Paste your long URL here" class="min-w-0 flex-1 bg-transparent py-4 text-base text-slate-950 outline-none placeholder:text-slate-400" aria-describedby="url-requirements long-url-error" required>
+                                </div>
+                                <p id="long-url-error" class="mt-2 hidden text-sm font-medium text-red-300" role="alert"></p>
+                                <div class="mt-3">
+                                    <label for="expires-at" class="text-sm font-medium text-slate-700 dark:text-slate-300">Expiration <span class="font-normal text-slate-500">(optional)</span></label>
+                                    <input id="expires-at" name="expires_at" type="datetime-local" class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white" aria-describedby="expires-at-help expires-at-error">
+                                    <p id="expires-at-help" class="mt-1 text-xs text-slate-500">Uses your local timezone. Maximum lifetime is 365 days.</p>
+                                    <p id="expires-at-error" class="mt-1 hidden text-sm font-medium text-red-300" role="alert"></p>
+                                </div>
                             </div>
-                            <p id="long-url-error" class="mt-2 hidden text-sm font-medium text-red-300" role="alert"></p>
-                            <div class="mt-3">
-                                <label for="expires-at" class="text-sm font-medium text-slate-700 dark:text-slate-300">Expiration <span class="font-normal text-slate-500">(optional)</span></label>
-                                <input id="expires-at" name="expires_at" type="datetime-local" class="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white" aria-describedby="expires-at-help expires-at-error">
-                                <p id="expires-at-help" class="mt-1 text-xs text-slate-500">Uses your local timezone. Maximum lifetime is 365 days.</p>
-                                <p id="expires-at-error" class="mt-1 hidden text-sm font-medium text-red-300" role="alert"></p>
+                            <div>
+                                <label for="custom-alias" class="text-sm font-medium text-slate-700 dark:text-slate-300">Custom alias <span class="font-normal text-slate-500">(optional)</span></label>
+                                <div data-alias-shell class="mt-1 flex min-w-0 items-center rounded-lg border border-slate-200 bg-white text-sm text-slate-500 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-slate-400">
+                                    <span data-url-prefix class="max-w-[45%] truncate border-r border-slate-200 px-3 dark:border-white/10"></span>
+                                    <input id="custom-alias" name="custom_alias" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="spring-sale" class="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-slate-950 outline-none placeholder:text-slate-400 dark:text-white" aria-describedby="custom-alias-help custom-alias-error">
+                                </div>
+                                <p id="custom-alias-help" class="mt-1 text-xs text-slate-500">3-48 letters, numbers, or single hyphens. Reserved paths cannot be used.</p>
+                                <p id="custom-alias-error" class="mt-1 hidden text-sm font-medium text-red-300" role="alert"></p>
+                            </div>
+                            <div class="lg:pt-6">
+                                <button id="shorten-button" type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 disabled:cursor-wait disabled:opacity-70 lg:w-auto">
+                                    <span data-button-label>Shorten URL</span>
+                                    <svg data-button-arrow class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+                                    <svg data-button-spinner class="hidden size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle class="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" />
+                                        <path class="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3Z" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
-                        <button id="shorten-button" type="submit" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-300 disabled:cursor-wait disabled:opacity-70 sm:mt-0 sm:w-auto">
-                            <span data-button-label>Shorten URL</span>
-                            <svg data-button-arrow class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-                            <svg data-button-spinner class="hidden size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <circle class="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" />
-                                <path class="opacity-90" fill="currentColor" d="M21 12a9 9 0 0 0-9-9v3a6 6 0 0 1 6 6h3Z" />
-                            </svg>
-                        </button>
                     </form>
                     <p id="shortener-status" class="sr-only" role="status" aria-live="polite"></p>
                     <p id="url-requirements" class="mt-4 text-sm text-slate-500 dark:text-slate-400">Only HTTP and HTTPS links are supported.</p>

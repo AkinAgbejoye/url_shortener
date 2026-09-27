@@ -15,6 +15,10 @@ class OperationalMetrics
 
     private const CLEANUP_OUTCOMES = ['deleted', 'examined', 'failed', 'skipped'];
 
+    private const ALIAS_TYPES = ['custom', 'generated'];
+
+    private const ALIAS_OUTCOMES = ['claimed', 'conflict', 'exhausted', 'retry'];
+
     private const REQUEST_OPERATIONS = ['create', 'redirect'];
 
     private const REQUEST_OUTCOMES = [
@@ -59,6 +63,17 @@ class OperationalMetrics
 
         $this->exporter->increment('lifecycle_cleanup_total', [
             'record_type' => $recordType,
+            'outcome' => $outcome,
+        ]);
+    }
+
+    public function aliasAllocation(string $type, string $outcome): void
+    {
+        $this->ensureAllowed($type, self::ALIAS_TYPES, 'alias type');
+        $this->ensureAllowed($outcome, self::ALIAS_OUTCOMES, 'alias outcome');
+
+        $this->exporter->increment('alias_allocations_total', [
+            'type' => $type,
             'outcome' => $outcome,
         ]);
     }

@@ -15,11 +15,29 @@ export const initShortener = (root = document) => {
     const inputError = form.querySelector('#long-url-error');
     const expirationInput = form.querySelector('#expires-at');
     const expirationError = form.querySelector('#expires-at-error');
+    const aliasInput = form.querySelector('#custom-alias');
+    const aliasShell = form.querySelector('[data-alias-shell]');
+    const aliasError = form.querySelector('#custom-alias-error');
+    const aliasPrefix = form.querySelector('[data-url-prefix]');
     const status = root.querySelector('#shortener-status');
     const result = root.querySelector('#short-url-result');
     const history = root.querySelector('#recent-links');
     const historyList = root.querySelector('#recent-links-list');
     const clearHistoryButton = root.querySelector('#clear-history');
+    const reservedAliases = new Set([
+        'admin',
+        'api',
+        'assets',
+        'build',
+        'dashboard',
+        'health',
+        'login',
+        'logout',
+        'register',
+        'status',
+        'storage',
+        'up',
+    ]);
     let currentResultLink = null;
     const storage = (() => {
         try {
@@ -28,6 +46,11 @@ export const initShortener = (root = document) => {
             return null;
         }
     })();
+
+    if (aliasPrefix && form.dataset.urlPrefix) {
+        aliasPrefix.textContent = form.dataset.urlPrefix;
+        aliasPrefix.title = form.dataset.urlPrefix;
+    }
 
     const setLoading = (loading) => {
         button.disabled = loading;
@@ -53,6 +76,13 @@ export const initShortener = (root = document) => {
             expirationError.textContent = '';
             expirationError.classList.add('hidden');
         }
+        aliasInput?.removeAttribute('aria-invalid');
+        if (aliasError) {
+            aliasError.textContent = '';
+            aliasError.classList.add('hidden');
+        }
+        aliasShell?.classList.remove('border-red-400', 'ring-2', 'ring-red-400/30');
+        aliasShell?.classList.add('border-slate-200');
     };
 
     const showExpirationError = (message) => {
@@ -71,6 +101,17 @@ export const initShortener = (root = document) => {
         inputShell.classList.remove('ring-slate-200');
         inputShell.classList.add('ring-red-400');
         input.focus();
+    };
+
+    const showAliasError = (message) => {
+        aliasInput?.setAttribute('aria-invalid', 'true');
+        if (aliasError) {
+            aliasError.textContent = message;
+            aliasError.classList.remove('hidden');
+        }
+        aliasShell?.classList.remove('border-slate-200');
+        aliasShell?.classList.add('border-red-400', 'ring-2', 'ring-red-400/30');
+        aliasInput?.focus();
     };
 
     const validateUrl = () => {
@@ -120,6 +161,30 @@ export const initShortener = (root = document) => {
 
         if (expiration.getTime() <= Date.now()) {
             return 'Choose an expiration in the future.';
+        }
+
+        return null;
+    };
+
+    const normalizeAlias = () => aliasInput?.value.trim().toLowerCase() ?? '';
+
+    const validateAlias = () => {
+        const alias = normalizeAlias();
+
+        if (!alias) {
+            return null;
+        }
+
+        if (reservedAliases.has(alias)) {
+            return 'The custom alias is reserved and cannot be used.';
+        }
+
+        if (alias.length < 3 || alias.length > 48) {
+            return 'The custom alias must be between 3 and 48 characters.';
+        }
+
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(alias)) {
+            return 'The custom alias may contain letters, numbers, and single hyphens between groups.';
         }
 
         return null;
@@ -563,7 +628,9 @@ export const initShortener = (root = document) => {
         const payload = await readJson(response);
 
         if (response.status === 422) {
-            if (payload.errors?.expires_at?.[0]) {
+            if (payload.errors?.custom_alias?.[0]) {
+                showAliasError(payload.errors.custom_alias[0]);
+            } else if (payload.errors?.expires_at?.[0]) {
                 showExpirationError(payload.errors.expires_at[0]);
             } else {
                 showFieldError(payload.errors?.long_url?.[0] ?? 'Check the URL and try again.');
@@ -577,7 +644,11 @@ export const initShortener = (root = document) => {
         }
 
         if (response.status === 409) {
-            showError(payload.message ?? 'This request conflicts with an earlier request.');
+            if (payload.errors?.custom_alias?.[0]) {
+                showAliasError(payload.errors.custom_alias[0]);
+            } else {
+                showError(payload.message ?? 'This request conflicts with an earlier request.');
+            }
             return;
         }
 
@@ -590,6 +661,10 @@ export const initShortener = (root = document) => {
 
     input.addEventListener('input', clearFieldError);
     expirationInput?.addEventListener('input', clearFieldError);
+    aliasInput?.addEventListener('input', clearFieldError);
+    aliasInput?.addEventListener('blur', () => {
+        aliasInput.value = normalizeAlias();
+    });
     clearHistoryButton?.addEventListener('click', () => {
         try {
             storage?.removeItem(historyKey);
@@ -609,6 +684,7 @@ export const initShortener = (root = document) => {
         clearFieldError();
         const validationError = validateUrl();
         const expirationValidationError = validateExpiration();
+        const aliasValidationError = validateAlias();
 
         if (validationError) {
             showFieldError(validationError);
@@ -620,11 +696,20 @@ export const initShortener = (root = document) => {
             return;
         }
 
+        if (aliasValidationError) {
+            showAliasError(aliasValidationError);
+            return;
+        }
+
         setLoading(true);
         result.hidden = true;
 
         try {
             const expiresAt = expirationValue();
+            const customAlias = normalizeAlias();
+            if (aliasInput) {
+                aliasInput.value = customAlias;
+            }
             const response = await fetch(form.dataset.endpoint, {
                 method: 'POST',
                 headers: {
@@ -633,6 +718,7 @@ export const initShortener = (root = document) => {
                 },
                 body: JSON.stringify({
                     long_url: input.value.trim(),
+                    ...(customAlias ? { custom_alias: customAlias } : {}),
                     ...(expiresAt ? { expires_at: expiresAt.toISOString() } : {}),
                 }),
             });
