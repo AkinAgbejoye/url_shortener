@@ -21,6 +21,17 @@ class CustomAlias implements ValidationRule
         $maximum = max($minimum, (int) config('url_shortener.aliases.max_length', 48));
         $length = mb_strlen($alias);
 
+        $reserved = array_map(
+            static fn (mixed $reservedAlias): string => AliasValue::canonicalize((string) $reservedAlias),
+            (array) config('url_shortener.aliases.reserved', []),
+        );
+
+        if (in_array($alias, $reserved, true)) {
+            $fail('The custom alias is reserved and cannot be used.');
+
+            return;
+        }
+
         if ($length < $minimum || $length > $maximum) {
             $fail("The custom alias must be between {$minimum} and {$maximum} characters.");
 
@@ -31,15 +42,6 @@ class CustomAlias implements ValidationRule
             $fail('The custom alias may contain letters, numbers, and single hyphens between groups.');
 
             return;
-        }
-
-        $reserved = array_map(
-            static fn (mixed $reservedAlias): string => AliasValue::canonicalize((string) $reservedAlias),
-            (array) config('url_shortener.aliases.reserved', []),
-        );
-
-        if (in_array($alias, $reserved, true)) {
-            $fail('The custom alias is reserved and cannot be used.');
         }
     }
 }

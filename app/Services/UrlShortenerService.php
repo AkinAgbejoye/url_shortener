@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Exceptions\CustomAliasConflict;
 use App\Models\IdempotencyKey;
 use App\Models\Url;
+use App\Support\CustomAlias;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -11,15 +13,17 @@ use Illuminate\Support\Str;
 
 class UrlShortenerService
 {
-    public function __construct(private readonly Base62Service $base62) {}
+    public function __construct(private readonly ShortCodeAllocator $shortCodes) {}
 
     /** @return array{response: array<string, mixed>, created: bool, conflict: bool, management_token: string|null} */
     public function shorten(
         string $longUrl,
         ?string $idempotencyKey,
         ?CarbonImmutable $expiresAt = null,
+        ?string $customAlias = null,
     ): array {
-        $requestHash = $this->requestHash($longUrl, $expiresAt);
+        $customAlias = $this->canonicalAlias($customAlias);
+        $requestHash = $this->requestHash($longUrl, $expiresAt, $customAlias);
 
         if ($idempotencyKey !== null) {
             $existing = IdempotencyKey::where('key', $idempotencyKey)->first();
@@ -29,7 +33,7 @@ class UrlShortenerService
         }
 
         try {
-            return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash, $expiresAt): array {
+            return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash, $expiresAt, $customAlias): array {
                 $managementToken = bin2hex(random_bytes(32));
                 $url = Url::create([
                     'long_url' => $longUrl,
@@ -37,8 +41,7 @@ class UrlShortenerService
                     'expires_at' => $expiresAt,
                     'management_token_hash' => hash('sha256', $managementToken),
                 ]);
-                $shortCode = $this->base62->encode($url->id);
-                $url->update(['short_code' => $shortCode]);
+                $shortCode = $this->shortCodes->claim($url, $customAlias);
 
                 $response = [
                     'id' => $url->id,
@@ -64,6 +67,16 @@ class UrlShortenerService
                     'management_token' => $managementToken,
                 ];
             });
+        } catch (CustomAliasConflict $exception) {
+            $existing = $idempotencyKey === null
+                ? null
+                : IdempotencyKey::where('key', $idempotencyKey)->first();
+
+            if ($existing === null) {
+                throw $exception;
+            }
+
+            return $this->replay($existing, $requestHash);
         } catch (QueryException $exception) {
             $existing = $idempotencyKey === null
                 ? null
@@ -88,15 +101,36 @@ class UrlShortenerService
         ];
     }
 
-    private function requestHash(string $longUrl, ?CarbonImmutable $expiresAt): string
-    {
-        if ($expiresAt === null) {
+    private function requestHash(
+        string $longUrl,
+        ?CarbonImmutable $expiresAt,
+        ?string $customAlias,
+    ): string {
+        if ($expiresAt === null && $customAlias === null) {
             return hash('sha256', $longUrl);
         }
 
-        return hash('sha256', json_encode([
-            'long_url' => $longUrl,
-            'expires_at' => $expiresAt->utc()->toIso8601String(),
-        ], JSON_THROW_ON_ERROR));
+        $intent = ['long_url' => $longUrl];
+
+        if ($expiresAt !== null) {
+            $intent['expires_at'] = $expiresAt->utc()->toIso8601String();
+        }
+
+        if ($customAlias !== null) {
+            $intent['custom_alias'] = $customAlias;
+        }
+
+        return hash('sha256', json_encode($intent, JSON_THROW_ON_ERROR));
+    }
+
+    private function canonicalAlias(?string $customAlias): ?string
+    {
+        if ($customAlias === null) {
+            return null;
+        }
+
+        $canonical = CustomAlias::canonicalize($customAlias);
+
+        return $canonical === '' ? null : $canonical;
     }
 }

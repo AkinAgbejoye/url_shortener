@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\CustomAliasConflict;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUrlRequest;
 use App\Services\UrlCache;
@@ -26,11 +27,23 @@ class UrlController extends Controller
 
         try {
             $expiresAt = $request->expiresAt();
-            $result = $shortener->shorten(
-                $request->validated('long_url'),
-                $request->idempotencyKey(),
-                $expiresAt,
-            );
+            try {
+                $result = $shortener->shorten(
+                    $request->validated('long_url'),
+                    $request->idempotencyKey(),
+                    $expiresAt,
+                    $request->customAlias(),
+                );
+            } catch (CustomAliasConflict $exception) {
+                $outcome = 'conflict';
+
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'errors' => [
+                        'custom_alias' => [$exception->getMessage()],
+                    ],
+                ], 409);
+            }
 
             if ($result['conflict']) {
                 $outcome = 'conflict';

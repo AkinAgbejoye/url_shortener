@@ -4,6 +4,7 @@ return [
     'max_lifetime_days' => (int) env('URL_MAX_LIFETIME_DAYS', 365),
 
     'aliases' => [
+        'allocation_attempts' => (int) env('URL_ALIAS_ALLOCATION_ATTEMPTS', 20),
         'min_length' => (int) env('URL_ALIAS_MIN_LENGTH', 3),
         'max_length' => (int) env('URL_ALIAS_MAX_LENGTH', 48),
         'reserved' => [
