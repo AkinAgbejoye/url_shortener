@@ -26,16 +26,20 @@ class UrlResolverTest extends TestCase
         Cache::shouldReceive('get')
             ->twice()
             ->with('url:concurrent')
-            ->andReturn(null, 'https://concurrent.example');
+            ->andReturn(null, [
+                'version' => 1,
+                'long_url' => 'https://concurrent.example',
+                'expires_at' => null,
+            ]);
         Cache::shouldReceive('lock')
             ->once()
             ->with('lock:cache-rebuild:concurrent', 10)
             ->andReturn($lock);
 
-        $this->assertSame(
-            'https://concurrent.example',
-            app(UrlResolver::class)->resolve('concurrent'),
-        );
+        $resolution = app(UrlResolver::class)->resolve('concurrent');
+
+        $this->assertSame('https://concurrent.example', $resolution->destination);
+        $this->assertSame('found', $resolution->outcome);
     }
 
     public function test_it_logs_a_lock_timeout_and_falls_back_to_the_database(): void
@@ -61,10 +65,10 @@ class UrlResolverTest extends TestCase
             ->with('lock:cache-rebuild:locked', 10)
             ->andReturn($lock);
 
-        $this->assertSame(
-            'https://locked.example',
-            app(UrlResolver::class)->resolve('locked'),
-        );
+        $resolution = app(UrlResolver::class)->resolve('locked');
+
+        $this->assertSame('https://locked.example', $resolution->destination);
+        $this->assertSame('found', $resolution->outcome);
         Log::shouldHaveReceived('warning')
             ->once()
             ->with('url_cache_lock_timeout', \Mockery::on(

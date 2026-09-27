@@ -78,7 +78,7 @@ Repeating the request with the same idempotency key and URL returns the stored r
 
 ### Follow a short URL
 
-`GET /{shortCode}` redirects to the original URL. Unknown codes return `404 Not Found`.
+`GET /{shortCode}` redirects to the original URL. Unknown, expired, disabled, and deleted codes return `404 Not Found`.
 
 ### Health check
 
@@ -115,7 +115,7 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 - Sentry is used only as an exception transport. Automatic integrations, performance tracing, logs, metrics, and breadcrumbs are disabled. Reports retain the exception type and stack with a generic message, plus the request ID, URL path, HTTP method, and bounded user-agent. A final sanitizer removes request bodies, query strings, full URLs, credentials, headers, idempotency keys, user data, breadcrumbs, extras, and stack variables.
 - Local and external reporting failures are isolated and never alter the original application response.
 - The creation endpoint is limited to 10 requests per minute per client.
-- Cache entries expire after 24 hours and are rebuilt from the database on demand.
+- Versioned cache entries expire after 24 hours or at the URL expiration time, whichever comes first, and are rebuilt from the database on demand. Legacy, malformed, unsafe, and expired cache values are discarded.
 
 ## License
 
