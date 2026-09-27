@@ -92,6 +92,93 @@ class UrlControllerTest extends TestCase
             ->assertJsonValidationErrors('long_url');
     }
 
+    public function test_it_creates_normalizes_caches_and_redirects_a_custom_alias(): void
+    {
+        $response = $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/product-launch',
+            'custom_alias' => '  Product-Launch  ',
+        ])->assertCreated()
+            ->assertJsonPath('short_code', 'product-launch')
+            ->assertJsonPath('short_url', 'http://localhost/product-launch');
+        $managementToken = $response->headers->get('X-Management-Token');
+
+        $this->assertDatabaseHas('urls', [
+            'short_code' => 'product-launch',
+            'is_custom' => true,
+        ]);
+        $this->assertSame(
+            'https://example.com/product-launch',
+            Cache::get('url:product-launch')['long_url'],
+        );
+        $this->get('/product-launch')->assertRedirect('https://example.com/product-launch');
+        $this->withHeader('X-Management-Token', $managementToken)
+            ->getJson('/api/v1/urls/product-launch')
+            ->assertOk()
+            ->assertJsonPath('short_code', 'product-launch');
+    }
+
+    public function test_it_returns_a_field_specific_conflict_for_a_claimed_alias(): void
+    {
+        $payload = [
+            'long_url' => 'https://example.com/first',
+            'custom_alias' => 'campaign',
+        ];
+        $this->postJson('/api/v1/urls', $payload)->assertCreated();
+
+        $this->postJson('/api/v1/urls', [
+            'long_url' => 'https://example.com/second',
+            'custom_alias' => 'CAMPAIGN',
+        ])->assertConflict()->assertExactJson([
+            'message' => 'The custom alias has already been taken.',
+            'errors' => [
+                'custom_alias' => ['The custom alias has already been taken.'],
+            ],
+        ]);
+
+        $this->assertDatabaseCount('urls', 1);
+    }
+
+    public function test_it_validates_custom_alias_policy_at_the_api_boundary(): void
+    {
+        foreach ([
+            ['up', 'The custom alias is reserved and cannot be used.'],
+            ['API', 'The custom alias is reserved and cannot be used.'],
+            ['bad/alias', 'The custom alias may contain letters, numbers, and single hyphens between groups.'],
+        ] as [$alias, $message]) {
+            $this->postJson('/api/v1/urls', [
+                'long_url' => 'https://example.com',
+                'custom_alias' => $alias,
+            ])->assertUnprocessable()
+                ->assertJsonPath('message', $message)
+                ->assertJsonPath('errors.custom_alias.0', $message);
+        }
+
+        $this->assertDatabaseCount('urls', 0);
+    }
+
+    public function test_idempotency_replays_the_same_alias_and_conflicts_when_it_changes(): void
+    {
+        $headers = ['Idempotency-Key' => 'custom-alias-request'];
+        $payload = [
+            'long_url' => 'https://example.com/campaign',
+            'custom_alias' => 'Product-Launch',
+        ];
+
+        $created = $this->postJson('/api/v1/urls', $payload, $headers)->assertCreated();
+        $replayed = $this->postJson('/api/v1/urls', [
+            ...$payload,
+            'custom_alias' => 'product-launch',
+        ], $headers)->assertOk();
+        $this->assertSame($created->json(), $replayed->json());
+
+        $this->postJson('/api/v1/urls', [
+            ...$payload,
+            'custom_alias' => 'another-launch',
+        ], $headers)->assertConflict()
+            ->assertJsonPath('message', 'This idempotency key was already used with a different request.');
+        $this->assertDatabaseCount('urls', 1);
+    }
+
     public function test_it_normalizes_and_persists_a_valid_expiration_in_utc(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-09-27T08:00:00Z'));

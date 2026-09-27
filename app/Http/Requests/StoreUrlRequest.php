@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\CustomAlias as CustomAliasRule;
 use App\Rules\UrlExpiration;
+use App\Support\CustomAlias;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -18,6 +20,7 @@ class StoreUrlRequest extends FormRequest
     {
         return [
             'long_url' => ['required', 'url:http,https', 'max:2048'],
+            'custom_alias' => ['nullable', new CustomAliasRule],
             'expires_at' => [
                 'nullable',
                 new UrlExpiration(max(1, (int) config('url_shortener.max_lifetime_days'))),
@@ -50,10 +53,21 @@ class StoreUrlRequest extends FormRequest
         return is_string($expiresAt) ? CarbonImmutable::parse($expiresAt)->utc() : null;
     }
 
+    public function customAlias(): ?string
+    {
+        $alias = $this->validated('custom_alias');
+
+        return is_string($alias) && $alias !== '' ? $alias : null;
+    }
+
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'idempotency_key' => $this->header('Idempotency-Key'),
-        ]);
+        $input = ['idempotency_key' => $this->header('Idempotency-Key')];
+
+        if (is_string($this->input('custom_alias'))) {
+            $input['custom_alias'] = CustomAlias::canonicalize($this->input('custom_alias'));
+        }
+
+        $this->merge($input);
     }
 }
