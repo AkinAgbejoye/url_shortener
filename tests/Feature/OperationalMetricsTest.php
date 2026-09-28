@@ -43,6 +43,7 @@ class OperationalMetricsTest extends TestCase
 
         foreach ([...$metrics->counters, ...$metrics->timings] as $metric) {
             $this->assertContains(array_keys($metric['labels']), [
+                ['outcome'],
                 ['operation', 'outcome'],
                 ['type', 'outcome'],
             ]);
