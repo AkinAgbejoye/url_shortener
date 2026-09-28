@@ -26,6 +26,10 @@ return [
     'analytics' => [
         'max_query_days' => (int) env('URL_ANALYTICS_MAX_QUERY_DAYS', 90),
         'retention_days' => (int) env('URL_ANALYTICS_RETENTION_DAYS', 365),
+        'cleanup' => [
+            'batch_size' => (int) env('URL_ANALYTICS_CLEANUP_BATCH_SIZE', 500),
+            'time' => env('URL_ANALYTICS_CLEANUP_TIME', '03:15'),
+        ],
     ],
 
     'cleanup' => [

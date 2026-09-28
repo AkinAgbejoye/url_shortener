@@ -16,3 +16,12 @@ Schedule::command(sprintf(
     ->dailyAt(config('url_shortener.cleanup.time'))
     ->withoutOverlapping(60)
     ->onOneServer();
+
+Schedule::command(sprintf(
+    'urls:prune-analytics --batch-size=%d --retention-days=%d',
+    config('url_shortener.analytics.cleanup.batch_size'),
+    config('url_shortener.analytics.retention_days'),
+))
+    ->dailyAt(config('url_shortener.analytics.cleanup.time'))
+    ->withoutOverlapping(60)
+    ->onOneServer();

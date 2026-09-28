@@ -24,6 +24,7 @@ class OperationalMetricsTest extends TestCase
         $metrics->cleanup('url', 'deleted');
         $metrics->aliasAllocation('custom', 'claimed');
         $metrics->analytics('recorded');
+        $metrics->analyticsCleanup('batch', 'deleted');
 
         $this->assertTrue($exporter->hasCounter('requests_total', [
             'operation' => 'create',
@@ -47,6 +48,10 @@ class OperationalMetricsTest extends TestCase
         ]));
         $this->assertTrue($exporter->hasCounter('analytics_redirects_total', [
             'outcome' => 'recorded',
+        ]));
+        $this->assertTrue($exporter->hasCounter('analytics_cleanup_total', [
+            'scope' => 'batch',
+            'outcome' => 'deleted',
         ]));
     }
 
