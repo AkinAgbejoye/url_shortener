@@ -64,6 +64,7 @@ class UrlShortenerServiceTest extends TestCase
 
     public function test_it_persists_expiration_and_hashes_the_normalized_creation_intent(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-09-27T08:00:00Z'));
         $service = app(UrlShortenerService::class);
         $expiration = CarbonImmutable::parse('2026-09-28T10:00:00+02:00')->utc();
 
