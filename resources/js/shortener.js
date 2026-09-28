@@ -288,6 +288,11 @@ export const initShortener = (root = document) => {
         return details;
     };
 
+    const isManagedLink = (link) =>
+        typeof link.short_code === 'string' &&
+        typeof link.management_token === 'string' &&
+        /^[a-f0-9]{64}$/.test(link.management_token);
+
     const managementRequest = async (link, method, suffix = '', body = undefined) => {
         const response = await fetch(`/api/v1/urls/${encodeURIComponent(link.short_code)}${suffix}`, {
             method,
@@ -307,17 +312,286 @@ export const initShortener = (root = document) => {
         return response.status === 204 ? null : response.json();
     };
 
+    const formatAnalyticsDate = (value) => {
+        const date = new Date(`${value}T00:00:00Z`);
+
+        if (Number.isNaN(date.getTime())) {
+            return value;
+        }
+
+        return new Intl.DateTimeFormat(undefined, {
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'UTC',
+        }).format(date);
+    };
+
+    const analyticsErrorMessage = async (response) => {
+        const payload = await readJson(response);
+
+        if (response.status === 404) {
+            return 'Analytics are unavailable for this link. The token may be stale or the link may no longer exist.';
+        }
+
+        if (response.status === 429) {
+            return 'Analytics are rate limited right now. Wait a moment, then retry.';
+        }
+
+        if (response.status === 422) {
+            return payload.message ?? 'Choose a supported analytics range.';
+        }
+
+        return response.status >= 500
+            ? 'Analytics are temporarily unavailable. Please try again shortly.'
+            : (payload.message ?? 'Analytics could not be loaded.');
+    };
+
+    const analyticsRequest = async (link, range) => {
+        const response = await fetch(
+            `/api/v1/urls/${encodeURIComponent(link.short_code)}/analytics?range=${encodeURIComponent(range)}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Management-Token': link.management_token,
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(await analyticsErrorMessage(response));
+        }
+
+        return response.json();
+    };
+
+    const renderAnalyticsSummary = (panel, payload) => {
+        const series = Array.isArray(payload.series) ? payload.series : [];
+        const maxCount = Math.max(1, ...series.map((day) => Number(day.redirect_count) || 0));
+        const total = Number(payload.total_redirects) || 0;
+        const heading = panel.querySelector('[data-analytics-heading]');
+        const body = panel.querySelector('[data-analytics-body]');
+
+        heading.textContent = `${total.toLocaleString()} total ${total === 1 ? 'redirect' : 'redirects'}`;
+
+        if (series.length === 0 || total === 0) {
+            body.replaceChildren();
+            const empty = root.createElement('p');
+            empty.className =
+                'rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300';
+            empty.textContent = 'No redirects have been recorded for this range yet.';
+            body.append(empty);
+            return;
+        }
+
+        const chart = root.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        chart.setAttribute('viewBox', `0 0 ${series.length * 18} 100`);
+        chart.setAttribute('role', 'img');
+        chart.setAttribute(
+            'aria-label',
+            `Daily redirects from ${formatAnalyticsDate(payload.start_date)} to ${formatAnalyticsDate(payload.end_date)}.`,
+        );
+        chart.classList.add('mt-3', 'h-36', 'w-full', 'overflow-visible');
+
+        series.forEach((day, index) => {
+            const count = Number(day.redirect_count) || 0;
+            const height = Math.max(2, Math.round((count / maxCount) * 82));
+            const bar = root.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bar.setAttribute('x', String(index * 18 + 4));
+            bar.setAttribute('y', String(92 - height));
+            bar.setAttribute('width', '10');
+            bar.setAttribute('height', String(height));
+            bar.setAttribute('rx', '3');
+            bar.classList.add('fill-blue-500', 'dark:fill-cyan-300');
+
+            const title = root.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = `${formatAnalyticsDate(day.date)}: ${count} ${count === 1 ? 'redirect' : 'redirects'}`;
+            bar.append(title);
+            chart.append(bar);
+        });
+
+        const table = root.createElement('table');
+        table.className = 'mt-4 w-full text-left text-xs';
+        const caption = root.createElement('caption');
+        caption.className = 'sr-only';
+        caption.textContent = 'Daily redirect counts';
+        const thead = root.createElement('thead');
+        thead.className = 'text-slate-500 dark:text-slate-400';
+        const headRow = root.createElement('tr');
+        ['Date', 'Redirects'].forEach((label) => {
+            const cell = root.createElement('th');
+            cell.scope = 'col';
+            cell.className = 'border-b border-slate-200 py-2 font-semibold dark:border-white/10';
+            cell.textContent = label;
+            headRow.append(cell);
+        });
+        thead.append(headRow);
+        const tbody = root.createElement('tbody');
+        series.forEach((day) => {
+            const row = root.createElement('tr');
+            const date = root.createElement('th');
+            date.scope = 'row';
+            date.className = 'border-b border-slate-100 py-2 font-medium dark:border-white/5';
+            date.textContent = formatAnalyticsDate(day.date);
+            const redirects = root.createElement('td');
+            redirects.className = 'border-b border-slate-100 py-2 text-right tabular-nums dark:border-white/5';
+            redirects.textContent = String(Number(day.redirect_count) || 0);
+            row.append(date, redirects);
+            tbody.append(row);
+        });
+        table.append(caption, thead, tbody);
+        body.replaceChildren(chart, table);
+    };
+
+    const analyticsControls = (link) => {
+        if (!isManagedLink(link)) {
+            return null;
+        }
+
+        const container = root.createElement('div');
+        container.className = 'mt-3 w-full';
+
+        const toggle = root.createElement('button');
+        toggle.type = 'button';
+        toggle.className =
+            'rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white';
+        toggle.textContent = 'View analytics';
+        toggle.setAttribute('aria-expanded', 'false');
+
+        const panel = root.createElement('section');
+        panel.className =
+            'mt-3 rounded-xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-900/70';
+        panel.hidden = true;
+        panel.setAttribute('aria-label', `Analytics for ${link.short_url}`);
+        panel.setAttribute('aria-busy', 'false');
+
+        const top = root.createElement('div');
+        top.className = 'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between';
+
+        const title = root.createElement('h3');
+        title.className = 'text-sm font-semibold text-slate-950 dark:text-white';
+        title.setAttribute('data-analytics-heading', '');
+        title.tabIndex = -1;
+        title.textContent = 'Recent analytics';
+
+        const controls = root.createElement('div');
+        controls.className = 'flex flex-wrap items-center gap-2';
+
+        const label = root.createElement('label');
+        label.className = 'sr-only';
+        label.textContent = 'Analytics range';
+
+        const range = root.createElement('select');
+        range.className =
+            'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200';
+        [
+            ['7d', '7 days'],
+            ['30d', '30 days'],
+            ['90d', '90 days'],
+        ].forEach(([value, text]) => {
+            const option = root.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            range.append(option);
+        });
+        range.value = '30d';
+        label.append(range);
+
+        const retry = root.createElement('button');
+        retry.type = 'button';
+        retry.className =
+            'rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:border-white/10';
+        retry.textContent = 'Retry';
+        retry.hidden = true;
+
+        const close = root.createElement('button');
+        close.type = 'button';
+        close.className =
+            'rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white';
+        close.textContent = 'Close';
+
+        controls.append(label, retry, close);
+        top.append(title, controls);
+
+        const message = root.createElement('p');
+        message.className = 'mt-3 text-sm text-slate-600 dark:text-slate-300';
+        message.setAttribute('role', 'status');
+        message.setAttribute('aria-live', 'polite');
+
+        const body = root.createElement('div');
+        body.setAttribute('data-analytics-body', '');
+
+        const setDisabled = (disabled) => {
+            toggle.disabled = disabled;
+            range.disabled = disabled;
+            retry.disabled = disabled;
+            close.disabled = disabled;
+        };
+
+        const load = async () => {
+            let focusRetry = false;
+            panel.hidden = false;
+            toggle.setAttribute('aria-expanded', 'true');
+            panel.setAttribute('aria-busy', 'true');
+            setDisabled(true);
+            retry.hidden = true;
+            message.removeAttribute('role');
+            message.setAttribute('role', 'status');
+            message.textContent = 'Loading analytics...';
+            body.replaceChildren();
+
+            try {
+                renderAnalyticsSummary(panel, await analyticsRequest(link, range.value));
+                message.textContent = `Showing the last ${range.options[range.selectedIndex].text}.`;
+                title.focus();
+            } catch (error) {
+                console.error(error);
+                message.setAttribute('role', 'alert');
+                message.textContent =
+                    error instanceof TypeError
+                        ? 'Unable to reach analytics. Check your connection and retry.'
+                        : error.message || 'Analytics could not be loaded.';
+                retry.hidden = false;
+                focusRetry = true;
+            } finally {
+                panel.setAttribute('aria-busy', 'false');
+                setDisabled(false);
+                if (focusRetry) {
+                    retry.focus();
+                }
+            }
+        };
+
+        toggle.addEventListener('click', () => {
+            if (panel.hidden) {
+                load();
+                return;
+            }
+
+            panel.hidden = true;
+            toggle.setAttribute('aria-expanded', 'false');
+        });
+        range.addEventListener('change', load);
+        retry.addEventListener('click', load);
+        close.addEventListener('click', () => {
+            panel.hidden = true;
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.focus();
+        });
+
+        panel.append(top, message, body);
+        container.append(toggle, panel);
+
+        return container;
+    };
+
     const managementControls = (link, onUpdated, onDeleted) => {
-        if (
-            typeof link.short_code !== 'string' ||
-            typeof link.management_token !== 'string' ||
-            !/^[a-f0-9]{64}$/.test(link.management_token)
-        ) {
+        if (!isManagedLink(link)) {
             return null;
         }
 
         const panel = root.createElement('div');
-        panel.className = 'mt-4 border-t border-slate-200 pt-4 dark:border-white/10';
+        panel.className = 'mt-4 w-full border-t border-slate-200 pt-4 dark:border-white/10';
         panel.setAttribute('aria-label', `Manage short link ${link.short_url}`);
 
         const feedback = root.createElement('p');
@@ -420,7 +694,7 @@ export const initShortener = (root = document) => {
         const { long_url: longUrl, short_url: shortUrl, created_at: createdAt } = storedLink;
         const item = root.createElement('li');
         item.className =
-            'rounded-xl border border-slate-200 bg-white/70 p-4 sm:flex sm:items-center sm:gap-4 dark:border-white/10 dark:bg-white/[0.04]';
+            'rounded-xl border border-slate-200 bg-white/70 p-4 sm:flex sm:flex-wrap sm:items-center sm:gap-4 dark:border-white/10 dark:bg-white/[0.04]';
 
         const details = root.createElement('div');
         details.className = 'min-w-0 flex-1';
@@ -468,6 +742,10 @@ export const initShortener = (root = document) => {
         );
         if (controls) {
             item.append(controls);
+        }
+        const analytics = analyticsControls(storedLink);
+        if (analytics) {
+            item.append(analytics);
         }
 
         return item;
