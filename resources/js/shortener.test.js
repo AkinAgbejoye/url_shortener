@@ -36,6 +36,20 @@ const response = (body, status = 201, managementToken = null) => ({
     headers: { get: vi.fn().mockReturnValue(managementToken) },
 });
 
+const analyticsPayload = (overrides = {}) => ({
+    range: '30d',
+    timezone: 'UTC',
+    start_date: '2026-09-26',
+    end_date: '2026-09-28',
+    total_redirects: 5,
+    series: [
+        { date: '2026-09-26', redirect_count: 2 },
+        { date: '2026-09-27', redirect_count: 0 },
+        { date: '2026-09-28', redirect_count: 3 },
+    ],
+    ...overrides,
+});
+
 describe('URL shortener form', () => {
     beforeEach(() => {
         document.body.innerHTML = page();
@@ -324,6 +338,235 @@ describe('URL shortener form', () => {
         expect(JSON.parse(localStorage.getItem('shortly.recent-links'))[0].management_token).toBe(token);
         expect(document.body.textContent).not.toContain(token);
         expect(document.querySelector('#short-url-result').textContent).toContain('Expires');
+    });
+
+    it('loads accessible analytics for managed recent links without exposing the token', async () => {
+        const token = 'b'.repeat(64);
+        localStorage.setItem(
+            'shortly.recent-links',
+            JSON.stringify([
+                {
+                    short_code: 'managed',
+                    long_url: 'https://example.com/managed',
+                    short_url: 'http://localhost/managed',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                    management_token: token,
+                    status: 'active',
+                },
+            ]),
+        );
+        document.body.innerHTML = page();
+        initShortener();
+        fetch.mockResolvedValue(response(analyticsPayload(), 200));
+
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'View analytics' }));
+
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#recent-links'), 'heading', { name: '5 total redirects' }),
+            ).toBeTruthy(),
+        );
+        expect(fetch).toHaveBeenCalledWith(
+            '/api/v1/urls/managed/analytics?range=30d',
+            expect.objectContaining({
+                method: 'GET',
+                headers: expect.objectContaining({
+                    Accept: 'application/json',
+                    'X-Management-Token': token,
+                }),
+            }),
+        );
+        expect(fetch.mock.calls[0][0]).not.toContain(token);
+        expect(document.body.textContent).not.toContain(token);
+        expect(getByRole(document.querySelector('#recent-links'), 'img')).toBeTruthy();
+        expect(
+            getByRole(document.querySelector('#recent-links'), 'table', { name: 'Daily redirect counts' }),
+        ).toBeTruthy();
+    });
+
+    it('reloads analytics when the selected range changes', async () => {
+        const token = 'c'.repeat(64);
+        localStorage.setItem(
+            'shortly.recent-links',
+            JSON.stringify([
+                {
+                    short_code: 'range-test',
+                    long_url: 'https://example.com/range',
+                    short_url: 'http://localhost/range-test',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                    management_token: token,
+                },
+            ]),
+        );
+        document.body.innerHTML = page();
+        initShortener();
+        fetch
+            .mockResolvedValueOnce(response(analyticsPayload({ total_redirects: 1 }), 200))
+            .mockResolvedValueOnce(response(analyticsPayload({ range: '7d', total_redirects: 7 }), 200));
+
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'View analytics' }));
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#recent-links'), 'heading', { name: '1 total redirect' }),
+            ).toBeTruthy(),
+        );
+
+        const range = getByRole(document.querySelector('#recent-links'), 'combobox', { name: 'Analytics range' });
+        range.value = '7d';
+        fireEvent.change(range);
+
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#recent-links'), 'heading', { name: '7 total redirects' }),
+            ).toBeTruthy(),
+        );
+        expect(fetch).toHaveBeenLastCalledWith(
+            '/api/v1/urls/range-test/analytics?range=7d',
+            expect.objectContaining({
+                headers: expect.objectContaining({ 'X-Management-Token': token }),
+            }),
+        );
+    });
+
+    it('shows an empty analytics state and keeps the recent link visible', async () => {
+        localStorage.setItem(
+            'shortly.recent-links',
+            JSON.stringify([
+                {
+                    short_code: 'empty',
+                    long_url: 'https://example.com/empty',
+                    short_url: 'http://localhost/empty',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                    management_token: 'd'.repeat(64),
+                },
+            ]),
+        );
+        document.body.innerHTML = page();
+        initShortener();
+        fetch.mockResolvedValue(response(analyticsPayload({ total_redirects: 0 }), 200));
+
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'View analytics' }));
+
+        await waitFor(() =>
+            expect(document.querySelector('#recent-links').textContent).toContain(
+                'No redirects have been recorded for this range yet.',
+            ),
+        );
+        expect(
+            getByRole(document.querySelector('#recent-links'), 'link', { name: 'http://localhost/empty' }),
+        ).toBeTruthy();
+    });
+
+    it.each([
+        [404, 'Analytics are unavailable for this link. The token may be stale or the link may no longer exist.'],
+        [429, 'Analytics are rate limited right now. Wait a moment, then retry.'],
+    ])('shows a retryable analytics error for %s responses', async (statusCode, message) => {
+        const token = 'e'.repeat(64);
+        localStorage.setItem(
+            'shortly.recent-links',
+            JSON.stringify([
+                {
+                    short_code: 'retryable',
+                    long_url: 'https://example.com/retryable',
+                    short_url: 'http://localhost/retryable',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                    management_token: token,
+                },
+            ]),
+        );
+        document.body.innerHTML = page();
+        initShortener();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        fetch
+            .mockResolvedValueOnce(response({ message }, statusCode))
+            .mockResolvedValueOnce(response(analyticsPayload(), 200));
+
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'View analytics' }));
+
+        await waitFor(() =>
+            expect(getByRole(document.querySelector('#recent-links'), 'alert').textContent).toBe(message),
+        );
+
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'Retry' }));
+
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#recent-links'), 'heading', { name: '5 total redirects' }),
+            ).toBeTruthy(),
+        );
+        expect(JSON.parse(localStorage.getItem('shortly.recent-links'))[0].short_url).toBe(
+            'http://localhost/retryable',
+        );
+    });
+
+    it('handles analytics network failures, retry, and close focus management', async () => {
+        const token = 'f'.repeat(64);
+        localStorage.setItem(
+            'shortly.recent-links',
+            JSON.stringify([
+                {
+                    short_code: 'network',
+                    long_url: 'https://example.com/network',
+                    short_url: 'http://localhost/network',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                    management_token: token,
+                },
+            ]),
+        );
+        document.body.innerHTML = page();
+        initShortener();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        fetch
+            .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+            .mockResolvedValueOnce(response(analyticsPayload(), 200));
+
+        const analyticsButton = getByRole(document.querySelector('#recent-links'), 'button', {
+            name: 'View analytics',
+        });
+        fireEvent.click(analyticsButton);
+
+        await waitFor(() =>
+            expect(getByRole(document.querySelector('#recent-links'), 'alert').textContent).toBe(
+                'Unable to reach analytics. Check your connection and retry.',
+            ),
+        );
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'Retry' }));
+        await waitFor(() =>
+            expect(
+                getByRole(document.querySelector('#recent-links'), 'heading', { name: '5 total redirects' }),
+            ).toBeTruthy(),
+        );
+
+        fireEvent.click(getByRole(document.querySelector('#recent-links'), 'button', { name: 'Close' }));
+
+        expect(analyticsButton.getAttribute('aria-expanded')).toBe('false');
+        expect(document.activeElement).toBe(analyticsButton);
+    });
+
+    it('does not expose analytics actions for links without a valid stored token', () => {
+        localStorage.setItem(
+            'shortly.recent-links',
+            JSON.stringify([
+                {
+                    short_code: 'missing-token',
+                    long_url: 'https://example.com/missing-token',
+                    short_url: 'http://localhost/missing-token',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                },
+                {
+                    short_code: 'bad-token',
+                    long_url: 'https://example.com/bad-token',
+                    short_url: 'http://localhost/bad-token',
+                    created_at: '2026-09-28T10:00:00.000Z',
+                    management_token: 'not-a-token',
+                },
+            ]),
+        );
+        document.body.innerHTML = page();
+
+        expect(() => initShortener()).not.toThrow();
+        expect(document.querySelector('#recent-links').textContent).not.toContain('View analytics');
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     it('updates lifecycle state only after a successful management response', async () => {
