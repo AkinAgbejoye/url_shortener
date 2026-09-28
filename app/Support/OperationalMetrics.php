@@ -21,6 +21,10 @@ class OperationalMetrics
 
     private const ANALYTICS_OUTCOMES = ['failed', 'recorded'];
 
+    private const ANALYTICS_CLEANUP_SCOPES = ['batch', 'run'];
+
+    private const ANALYTICS_CLEANUP_OUTCOMES = ['deleted', 'failed', 'skipped', 'succeeded'];
+
     private const REQUEST_OPERATIONS = ['create', 'redirect'];
 
     private const REQUEST_OUTCOMES = [
@@ -85,6 +89,17 @@ class OperationalMetrics
         $this->ensureAllowed($outcome, self::ANALYTICS_OUTCOMES, 'analytics outcome');
 
         $this->exporter->increment('analytics_redirects_total', [
+            'outcome' => $outcome,
+        ]);
+    }
+
+    public function analyticsCleanup(string $scope, string $outcome): void
+    {
+        $this->ensureAllowed($scope, self::ANALYTICS_CLEANUP_SCOPES, 'analytics cleanup scope');
+        $this->ensureAllowed($outcome, self::ANALYTICS_CLEANUP_OUTCOMES, 'analytics cleanup outcome');
+
+        $this->exporter->increment('analytics_cleanup_total', [
+            'scope' => $scope,
             'outcome' => $outcome,
         ]);
     }
