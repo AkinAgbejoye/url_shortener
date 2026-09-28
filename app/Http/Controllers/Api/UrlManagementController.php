@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ShowUrlAnalyticsRequest;
 use App\Http\Requests\UpdateUrlExpirationRequest;
 use App\Models\Url;
+use App\Services\UrlAnalyticsQuery;
 use App\Services\UrlManagementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +14,18 @@ use Illuminate\Http\Response;
 
 class UrlManagementController extends Controller
 {
+    public function analytics(
+        string $shortCode,
+        ShowUrlAnalyticsRequest $request,
+        UrlAnalyticsQuery $analytics,
+    ): JsonResponse {
+        return response()->json($analytics->forUrl(
+            $shortCode,
+            $request->managementToken(),
+            $request->rangeDays(),
+        ));
+    }
+
     public function show(string $shortCode, Request $request, UrlManagementService $manager): JsonResponse
     {
         return response()->json($this->resource(

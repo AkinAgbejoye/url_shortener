@@ -11,6 +11,7 @@ Route::prefix('/v1/urls/{shortCode}')
     ->controller(UrlManagementController::class)
     ->group(function (): void {
         Route::get('/', 'show');
+        Route::get('/analytics', 'analytics');
         Route::patch('/', 'update');
         Route::post('/disable', 'disable');
         Route::post('/enable', 'enable');
