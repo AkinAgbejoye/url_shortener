@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Url extends Model
@@ -71,6 +72,12 @@ class Url extends Model
         }
 
         return $this->expires_at->lessThanOrEqualTo($this->asImmutable($at));
+    }
+
+    /** @return HasMany<UrlAnalyticsDaily, $this> */
+    public function dailyAnalytics(): HasMany
+    {
+        return $this->hasMany(UrlAnalyticsDaily::class);
     }
 
     /** @param Builder<Url> $query */
