@@ -8,22 +8,23 @@ final readonly class UrlResolution
 {
     private function __construct(
         public ?string $destination,
+        public ?int $urlId,
         public string $outcome,
     ) {}
 
-    public static function found(string $destination): self
+    public static function found(string $destination, int $urlId): self
     {
-        return new self($destination, 'found');
+        return new self($destination, $urlId, 'found');
     }
 
     public static function missing(): self
     {
-        return new self(null, 'not_found');
+        return new self(null, null, 'not_found');
     }
 
     public static function unavailable(UrlLifecycleState $state): self
     {
-        return new self(null, $state->value);
+        return new self(null, null, $state->value);
     }
 
     public function isFound(): bool

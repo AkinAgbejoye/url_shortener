@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Exceptions\CustomAliasConflict;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUrlRequest;
+use App\Services\UrlAnalyticsRecorder;
 use App\Services\UrlCache;
 use App\Services\UrlResolver;
 use App\Services\UrlShortenerService;
@@ -59,6 +60,7 @@ class UrlController extends Controller
                 try {
                     $urlCache->put(
                         $result['response']['short_code'],
+                        $result['response']['id'],
                         $result['response']['long_url'],
                         $expiresAt,
                     );
@@ -89,6 +91,7 @@ class UrlController extends Controller
     public function redirect(
         string $shortCode,
         UrlResolver $resolver,
+        UrlAnalyticsRecorder $analytics,
         OperationalMetrics $metrics,
     ): RedirectResponse {
         $startedAt = hrtime(true);
@@ -99,6 +102,8 @@ class UrlController extends Controller
             $outcome = $resolution->outcome;
 
             abort_unless($resolution->isFound(), 404);
+
+            $analytics->recordSuccessfulRedirect($resolution->urlId);
 
             return redirect()->away($resolution->destination);
         } finally {
