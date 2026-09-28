@@ -34,6 +34,7 @@ class UrlControllerTest extends TestCase
             'short_code' => '1',
             'long_url' => 'https://example.com/a/long/path',
         ]);
+        $this->assertSame(1, Cache::get('url:1')['url_id']);
         $this->assertSame('https://example.com/a/long/path', Cache::get('url:1')['long_url']);
     }
 
@@ -45,7 +46,8 @@ class UrlControllerTest extends TestCase
             ->once()
             ->with(
                 'url:1',
-                \Mockery::on(fn (array $payload): bool => $payload['version'] === 1
+                \Mockery::on(fn (array $payload): bool => $payload['version'] === 2
+                    && $payload['url_id'] === 1
                     && $payload['long_url'] === 'https://example.com/cache-failure'
                     && $payload['expires_at'] === null),
                 \Mockery::type(\DateTimeInterface::class),
@@ -299,7 +301,11 @@ class UrlControllerTest extends TestCase
     public function test_it_redirects_from_the_cache(): void
     {
         Cache::put('url:cached', [
-            'version' => 1,
+            'version' => 2,
+            'url_id' => Url::create([
+                'short_code' => 'cached',
+                'long_url' => 'https://cached.example',
+            ])->id,
             'long_url' => 'https://cached.example',
             'expires_at' => null,
         ]);
@@ -317,6 +323,7 @@ class UrlControllerTest extends TestCase
             ->assertRedirect('https://database.example');
 
         $this->assertSame('https://database.example', Cache::get('url:database')['long_url']);
+        $this->assertSame(Url::where('short_code', 'database')->value('id'), Cache::get('url:database')['url_id']);
     }
 
     public function test_an_expired_url_does_not_redirect(): void

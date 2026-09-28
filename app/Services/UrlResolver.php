@@ -26,7 +26,7 @@ class UrlResolver
             if ($cached !== null) {
                 $this->metrics->cache('read', 'hit');
 
-                return UrlResolution::found($cached);
+                return UrlResolution::found($cached['long_url'], $cached['url_id']);
             }
             $this->metrics->cache('read', 'miss');
 
@@ -38,7 +38,7 @@ class UrlResolver
                     if ($cached !== null) {
                         $this->metrics->cache('read', 'hit');
 
-                        return UrlResolution::found($cached);
+                        return UrlResolution::found($cached['long_url'], $cached['url_id']);
                     }
                     $this->metrics->cache('read', 'miss');
 
@@ -82,11 +82,11 @@ class UrlResolver
 
         if ($writeCache) {
             $cacheOperation = 'write';
-            $this->urlCache->put($shortCode, $url->long_url, $url->expires_at);
+            $this->urlCache->put($shortCode, $url->id, $url->long_url, $url->expires_at);
             $this->metrics->cache('write', 'success');
         }
 
-        return UrlResolution::found($url->long_url);
+        return UrlResolution::found($url->long_url, $url->id);
     }
 
     /** @return array{request_id: mixed, url_path: string|null} */

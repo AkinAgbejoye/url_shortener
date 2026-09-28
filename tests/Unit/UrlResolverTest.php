@@ -27,7 +27,8 @@ class UrlResolverTest extends TestCase
             ->twice()
             ->with('url:concurrent')
             ->andReturn(null, [
-                'version' => 1,
+                'version' => 2,
+                'url_id' => 123,
                 'long_url' => 'https://concurrent.example',
                 'expires_at' => null,
             ]);
@@ -39,12 +40,13 @@ class UrlResolverTest extends TestCase
         $resolution = app(UrlResolver::class)->resolve('concurrent');
 
         $this->assertSame('https://concurrent.example', $resolution->destination);
+        $this->assertSame(123, $resolution->urlId);
         $this->assertSame('found', $resolution->outcome);
     }
 
     public function test_it_logs_a_lock_timeout_and_falls_back_to_the_database(): void
     {
-        Url::create([
+        $url = Url::create([
             'short_code' => 'locked',
             'long_url' => 'https://locked.example',
         ]);
@@ -68,6 +70,7 @@ class UrlResolverTest extends TestCase
         $resolution = app(UrlResolver::class)->resolve('locked');
 
         $this->assertSame('https://locked.example', $resolution->destination);
+        $this->assertSame($url->id, $resolution->urlId);
         $this->assertSame('found', $resolution->outcome);
         Log::shouldHaveReceived('warning')
             ->once()

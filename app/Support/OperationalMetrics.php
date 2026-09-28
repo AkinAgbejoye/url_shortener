@@ -19,6 +19,8 @@ class OperationalMetrics
 
     private const ALIAS_OUTCOMES = ['claimed', 'conflict', 'exhausted', 'retry'];
 
+    private const ANALYTICS_OUTCOMES = ['failed', 'recorded'];
+
     private const REQUEST_OPERATIONS = ['create', 'redirect'];
 
     private const REQUEST_OUTCOMES = [
@@ -74,6 +76,15 @@ class OperationalMetrics
 
         $this->exporter->increment('alias_allocations_total', [
             'type' => $type,
+            'outcome' => $outcome,
+        ]);
+    }
+
+    public function analytics(string $outcome): void
+    {
+        $this->ensureAllowed($outcome, self::ANALYTICS_OUTCOMES, 'analytics outcome');
+
+        $this->exporter->increment('analytics_redirects_total', [
             'outcome' => $outcome,
         ]);
     }

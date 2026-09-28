@@ -8,14 +8,17 @@ use Illuminate\Support\Facades\Cache;
 
 class UrlCache
 {
-    private const VERSION = 1;
+    private const VERSION = 2;
 
-    public function get(string $shortCode): ?string
+    /** @return array{url_id: int, long_url: string}|null */
+    public function get(string $shortCode): ?array
     {
         $value = Cache::get($this->key($shortCode));
 
         if (! is_array($value)
             || ($value['version'] ?? null) !== self::VERSION
+            || ! is_int($value['url_id'] ?? null)
+            || $value['url_id'] < 1
             || ! is_string($value['long_url'] ?? null)
             || ! $this->hasSafeDestination($value['long_url'])
             || ! $this->hasValidExpiration($value['expires_at'] ?? null)) {
@@ -26,11 +29,15 @@ class UrlCache
             return null;
         }
 
-        return $value['long_url'];
+        return [
+            'url_id' => $value['url_id'],
+            'long_url' => $value['long_url'],
+        ];
     }
 
     public function put(
         string $shortCode,
+        int $urlId,
         string $longUrl,
         ?DateTimeInterface $expiresAt = null,
     ): void {
@@ -49,6 +56,7 @@ class UrlCache
 
         Cache::put($this->key($shortCode), [
             'version' => self::VERSION,
+            'url_id' => $urlId,
             'long_url' => $longUrl,
             'expires_at' => $expiration?->toIso8601String(),
         ], $ttl);

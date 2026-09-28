@@ -23,6 +23,7 @@ class OperationalMetricsTest extends TestCase
         $metrics->cache('read', 'hit');
         $metrics->cleanup('url', 'deleted');
         $metrics->aliasAllocation('custom', 'claimed');
+        $metrics->analytics('recorded');
 
         $this->assertTrue($exporter->hasCounter('requests_total', [
             'operation' => 'create',
@@ -43,6 +44,9 @@ class OperationalMetricsTest extends TestCase
         $this->assertTrue($exporter->hasCounter('alias_allocations_total', [
             'type' => 'custom',
             'outcome' => 'claimed',
+        ]));
+        $this->assertTrue($exporter->hasCounter('analytics_redirects_total', [
+            'outcome' => 'recorded',
         ]));
     }
 
