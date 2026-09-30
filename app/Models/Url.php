@@ -2,19 +2,22 @@
 
 namespace App\Models;
 
+use App\Contracts\UrlOwnership;
 use App\Enums\UrlLifecycleState;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Url extends Model
+class Url extends Model implements UrlOwnership
 {
     use SoftDeletes;
 
     protected $fillable = [
+        'owner_id',
         'long_url',
         'short_code',
         'is_custom',
@@ -80,6 +83,27 @@ class Url extends Model
         return $this->hasMany(UrlAnalyticsDaily::class);
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function ownerId(): ?int
+    {
+        return $this->owner_id;
+    }
+
+    public function isOwned(): bool
+    {
+        return $this->owner_id !== null;
+    }
+
+    public function isAnonymous(): bool
+    {
+        return $this->owner_id === null;
+    }
+
     /** @param Builder<Url> $query */
     public function scopeActive(Builder $query, ?DateTimeInterface $at = null): Builder
     {
@@ -92,6 +116,24 @@ class Url extends Model
                     ->whereNull('expires_at')
                     ->orWhere('expires_at', '>', $comparisonTime);
             });
+    }
+
+    /** @param Builder<Url> $query */
+    public function scopeOwned(Builder $query, User|int|null $owner = null): Builder
+    {
+        $query->whereNotNull('owner_id');
+
+        if ($owner !== null) {
+            $query->where('owner_id', $owner instanceof User ? $owner->getKey() : $owner);
+        }
+
+        return $query;
+    }
+
+    /** @param Builder<Url> $query */
+    public function scopeAnonymous(Builder $query): Builder
+    {
+        return $query->whereNull('owner_id');
     }
 
     private function asImmutable(?DateTimeInterface $at): CarbonImmutable
