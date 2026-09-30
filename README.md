@@ -157,12 +157,13 @@ composer audit
 npm run lint
 npm run format:check
 npm test
+npm run test:coverage
 npm run test:e2e
 npm audit --audit-level=high
 npm run build
 ```
 
-Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, custom aliases, validation, idempotency, transaction rollback, generated collision fallback, cache concurrency and failures, redirects, Base62 conversion, form submission, field-specific errors, clipboard behavior, history, themes, lifecycle management, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. Successful CI runs retain a machine-readable Clover report as the `backend-coverage-clover` artifact for 14 days.
+Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, custom aliases, validation, idempotency, transaction rollback, generated collision fallback, cache concurrency and failures, redirects, Base62 conversion, form submission, field-specific errors, clipboard behavior, history, themes, lifecycle management, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. `npm run test:coverage` enforces frontend line, statement, function, and branch thresholds with the Vitest V8 provider. Successful CI runs retain machine-readable coverage artifacts as `backend-coverage-clover` and `frontend-coverage` for 14 days.
 
 ### Offline verification
 
@@ -175,6 +176,7 @@ touch database/e2e.sqlite
 APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=database/e2e.sqlite CACHE_STORE=array php artisan migrate:fresh --force --no-interaction
 composer test
 npm test
+npm run test:coverage
 npm run test:e2e
 vendor/bin/pint --test
 npm run lint
@@ -184,7 +186,7 @@ npm run build
 
 The block intentionally contains no install command. Run `composer install --no-interaction --prefer-dist`, `npm ci`, and `npx playwright install chromium` before going offline if those artifacts are not already present. Dependency audits require advisory data and therefore remain an online CI gate.
 
-GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, Prettier, dependency audits, and the frontend build on every pull request and push to `main`. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
+GitHub Actions runs backend and frontend coverage thresholds, Pint, ESLint, Prettier, dependency audits, and the frontend build on every pull request and push to `main`. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
 
 ## Operational notes
 

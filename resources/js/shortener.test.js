@@ -157,6 +157,39 @@ describe('URL shortener form', () => {
         );
     });
 
+    it('rejects past expirations before submitting', () => {
+        document.querySelector('#long-url').value = 'https://example.com/campaign';
+        document.querySelector('#expires-at').value = '2020-01-01T00:00';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        expect(fetch).not.toHaveBeenCalled();
+        expect(document.querySelector('#expires-at-error').textContent).toBe('Choose an expiration in the future.');
+        expect(document.activeElement).toBe(document.querySelector('#expires-at'));
+    });
+
+    it('renders expiration validation returned by the API', async () => {
+        fetch.mockResolvedValue(
+            response(
+                {
+                    errors: { expires_at: ['The expiration must be before the maximum lifetime.'] },
+                },
+                422,
+            ),
+        );
+        document.querySelector('#long-url').value = 'https://example.com';
+        document.querySelector('#expires-at').value = '2030-01-01T00:00';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(document.querySelector('#expires-at-error').textContent).toBe(
+                'The expiration must be before the maximum lifetime.',
+            ),
+        );
+        expect(document.activeElement).toBe(document.querySelector('#expires-at'));
+    });
+
     it('renders alias conflicts beside the alias field and allows retry', async () => {
         fetch
             .mockResolvedValueOnce(
@@ -207,6 +240,45 @@ describe('URL shortener form', () => {
                     custom_alias: 'new-campaign',
                 }),
             }),
+        );
+    });
+
+    it('shows generic conflict responses when no field error is returned', async () => {
+        fetch.mockResolvedValue(response({ message: 'This idempotency key was used for another URL.' }, 409));
+        document.querySelector('#long-url').value = 'https://example.com/conflict';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(getByRole(document.querySelector('#short-url-result'), 'alert').textContent).toBe(
+                'This idempotency key was used for another URL.',
+            ),
+        );
+    });
+
+    it('shows a rate limit message for too many shortening requests', async () => {
+        fetch.mockResolvedValue(response({ message: 'Too many requests.' }, 429));
+        document.querySelector('#long-url').value = 'https://example.com/rate-limited';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(getByRole(document.querySelector('#short-url-result'), 'alert').textContent).toBe(
+                'You have shortened too many links. Wait a minute and try again.',
+            ),
+        );
+    });
+
+    it('shows a service unavailable message for server errors', async () => {
+        fetch.mockResolvedValue(response({}, 503));
+        document.querySelector('#long-url').value = 'https://example.com/unavailable';
+
+        fireEvent.submit(document.querySelector('#shortener-form'));
+
+        await waitFor(() =>
+            expect(getByRole(document.querySelector('#short-url-result'), 'alert').textContent).toBe(
+                'The shortening service is temporarily unavailable. Please try again shortly.',
+            ),
         );
     });
 

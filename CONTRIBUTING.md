@@ -17,12 +17,13 @@ composer audit
 npm run lint
 npm run format:check
 npm test
+npm run test:coverage
 npm run test:e2e
 npm audit --audit-level=high
 npm run build
 ```
 
-PCOV or Xdebug is required for the coverage command. Use `composer test` when iterating locally if neither extension is installed, but run the 70% coverage gate before submitting.
+PCOV or Xdebug is required for backend coverage. Use `composer test` when iterating locally if neither extension is installed, but run the backend and frontend coverage gates before submitting.
 
 ## Submit a change
 

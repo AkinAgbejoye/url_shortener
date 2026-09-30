@@ -84,8 +84,14 @@ jobs:
           name: backend-coverage-clover
           path: build/coverage/clover.xml
           retention-days: 14
-      - name: Run dashboard and application frontend unit tests
-        run: npm test
+      - name: Run dashboard and application frontend unit tests with coverage
+        run: npm run test:coverage
+      - name: Upload frontend coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage
+          path: coverage/frontend/
+          retention-days: 14
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run offline analytics and URL browser journeys
