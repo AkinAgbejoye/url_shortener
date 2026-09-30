@@ -72,7 +72,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install npm dependencies
         run: npm ci
-      - name: Run PHP tests with coverage
+      - name: Run backend analytics, privacy, and application tests with coverage
         run: composer test:coverage
       - name: Generate Clover coverage report
         run: |
@@ -84,11 +84,11 @@ jobs:
           name: backend-coverage-clover
           path: build/coverage/clover.xml
           retention-days: 14
-      - name: Run frontend unit tests
+      - name: Run dashboard and application frontend unit tests
         run: npm test
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run browser tests
+      - name: Run offline analytics and URL browser journeys
         run: npm run test:e2e
       - name: Upload browser test report
         if: failure()
