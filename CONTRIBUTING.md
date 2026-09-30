@@ -33,6 +33,26 @@ PCOV or Xdebug is required for backend coverage. Use `composer test` when iterat
 - Use a short, imperative commit message such as `fix: handle cache timeouts`.
 - Keep generated files, credentials, and local `.env` files out of commits.
 
+## Merge protection
+
+The active `Protect main quality gates` repository ruleset protects the `main` branch. Every change must arrive through a pull request whose branch is up to date with `main`, all review conversations must be resolved, and these exact GitHub Actions checks must pass on the latest commit:
+
+- `Lint and build`
+- `Test`
+- `Dependency audit`
+- `Fresh-clone bootstrap`
+
+The ruleset blocks force pushes and deletion of `main`. It does not require an approving review because this is currently a single-maintainer repository, but the pull request and passing checks are mandatory.
+
+The repository owner has a recovery-only bypass that works from a pull request; it does not permit direct pushes to `main`. Use it only when the ruleset or GitHub Actions infrastructure itself prevents an urgent recovery, explain the incident and bypass in that pull request, and restore normal enforcement before routine work resumes. Do not use the bypass for failing application or dependency checks.
+
+Maintainers can verify the effective configuration in [repository rules settings](https://github.com/AkinAgbejoye/url_shortener/rules/24258314) or through the API:
+
+```bash
+gh api repos/AkinAgbejoye/url_shortener/rulesets/24258314
+gh api repos/AkinAgbejoye/url_shortener/rules/branches/main
+```
+
 ## Prepare a release
 
 Move completed entries from `Unreleased` into a dated semantic version section in `CHANGELOG.md`. Create the version tag only after every local quality check passes and the corresponding `main` CI run is green.
