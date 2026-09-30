@@ -116,6 +116,29 @@ Only a SHA-256 hash of the token is stored. Missing, incorrect, unknown, and del
 
 The browser UI can request custom aliases, set expiration in local time, and store recent-link management tokens in local storage so it can update expiration, disable, enable, or delete those links later. Tokens are never rendered into page markup. Clearing recent history or browser storage permanently removes this local management access.
 
+### Read URL analytics
+
+`GET /api/v1/urls/{shortCode}/analytics?range=30d` returns aggregate redirect counts to callers that provide the original `X-Management-Token` header. The range must be a positive number of days followed by `d`, cannot exceed `URL_ANALYTICS_MAX_QUERY_DAYS`, and defaults to `30d`. These requests share the management limit of 30 requests per minute per client. Missing, invalid, unknown, and deleted credentials use the same `404 Not Found` response and do not reveal whether a short code exists.
+
+```json
+{
+  "range": "3d",
+  "timezone": "UTC",
+  "start_date": "2026-09-28",
+  "end_date": "2026-09-30",
+  "total_redirects": 4,
+  "series": [
+    { "date": "2026-09-28", "redirect_count": 1 },
+    { "date": "2026-09-29", "redirect_count": 0 },
+    { "date": "2026-09-30", "redirect_count": 3 }
+  ]
+}
+```
+
+`start_date` and `end_date` are inclusive UTC calendar dates. `series` is chronological, contains one zero-filled entry per requested day, and `total_redirects` is the sum of that series. The response never includes a URL ID, short code, alias, destination, management token, raw event, IP address, user agent, referrer, query string, cookie, or visitor identifier.
+
+Only successful `GET /{shortCode}` responses that resolve to an active destination are counted. Each request increments one aggregate bucket for the UTC day when the redirect is handled; repeated requests, bots, and retries each count because no visitor identifier is collected. Missing, expired, disabled, and deleted links and all API or management requests do not count. Analytics persistence runs before the redirect response but is failure-isolated, so a database or metrics failure cannot replace the redirect with an analytics error.
+
 ### Follow a short URL
 
 `GET /{shortCode}` redirects to the original URL. Unknown, expired, disabled, and deleted codes return `404 Not Found`.
@@ -141,6 +164,26 @@ npm run build
 
 Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, custom aliases, validation, idempotency, transaction rollback, generated collision fallback, cache concurrency and failures, redirects, Base62 conversion, form submission, field-specific errors, clipboard behavior, history, themes, lifecycle management, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. Successful CI runs retain a machine-readable Clover report as the `backend-coverage-clover` artifact for 14 days.
 
+### Offline verification
+
+The committed `composer.lock` and `package-lock.json` pin the dependency graph. After `vendor/`, `node_modules/`, and the Playwright Chromium binary have been installed once, disconnecting the network does not change the verification path: backend tests use SQLite, the array cache, frozen clocks, and fake metric exporters; browser tests use only the local application and block non-local HTTP requests.
+
+```bash
+git ls-files --error-unmatch composer.lock package-lock.json
+composer validate --strict
+touch database/e2e.sqlite
+APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=database/e2e.sqlite CACHE_STORE=array php artisan migrate:fresh --force --no-interaction
+composer test
+npm test
+npm run test:e2e
+vendor/bin/pint --test
+npm run lint
+npm run format:check
+npm run build
+```
+
+The block intentionally contains no install command. Run `composer install --no-interaction --prefer-dist`, `npm ci`, and `npx playwright install chromium` before going offline if those artifacts are not already present. Dependency audits require advisory data and therefore remain an online CI gate.
+
 GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, Prettier, dependency audits, and the frontend build on every pull request and push to `main`. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
 
 ## Operational notes
@@ -158,6 +201,39 @@ GitHub Actions runs tests with a 70% minimum coverage threshold, Pint, ESLint, P
 - Treat custom aliases as a public namespace. Keep the reserved list aligned with current and planned routes, monitor conflict-rate spikes for abuse or enumeration, and avoid placing sensitive campaign names in aliases before they are public.
 - Alias allocation logs use structured event names such as `url_alias_allocation_conflict`, `url_alias_allocation_retry`, and `url_alias_allocation_exhausted` with bounded context only. They never include the requested alias, destination URL, management token, or idempotency key.
 - Versioned cache entries expire after 24 hours or at the URL expiration time, whichever comes first, and are rebuilt from the database on demand. Legacy, malformed, unsafe, and expired cache values are discarded.
+
+### Analytics operations and privacy
+
+Analytics stores only a URL foreign key, UTC bucket date, aggregate redirect count, and database timestamps in `url_analytics_daily`. There is no raw click table. Application logs and metrics must not contain URL IDs, short codes, aliases, destinations, management tokens, request IDs, idempotency keys, IP addresses, user agents, referrers, query strings, cookies, or visitor identifiers.
+
+Every analytics environment setting and its default is listed below:
+
+| Variable | Default | Purpose |
+| --- | ---: | --- |
+| `URL_ANALYTICS_MAX_QUERY_DAYS` | `90` | Maximum API range and minimum allowed retention period. |
+| `URL_ANALYTICS_RETENTION_DAYS` | `365` | Whole UTC days retained before today. |
+| `URL_ANALYTICS_CLEANUP_BATCH_SIZE` | `500` | Buckets examined per deletion batch; valid command values are 1-1,000. |
+| `URL_ANALYTICS_CLEANUP_TIME` | `03:15` | Daily scheduler time in the application timezone, UTC by default. |
+
+Analytics uses the shared metrics settings `METRICS_DRIVER=null`, `METRICS_PREFIX=url_shortener`, `METRICS_STATSD_HOST=127.0.0.1`, `METRICS_STATSD_PORT=8125`, and `METRICS_STATSD_TIMEOUT=0.2`. With StatsD enabled, `<prefix>.analytics_redirects_total` has only `outcome=recorded|failed`; `<prefix>.analytics_cleanup_total` has only `scope=batch|run` and the applicable `outcome=deleted|skipped|failed|succeeded`. Transport failures are isolated by `metrics_export_failed`, whose context is limited to `metric` and `exception_class`.
+
+Structured analytics events and their complete contexts are:
+
+- `analytics_recorded`: `outcome`, `bucket_date`.
+- `analytics_record_failed`: `outcome`, `bucket_date`, `exception_class`.
+- `url_analytics_cleanup_batch_failed`: `batch`, `examined`, `deleted`, `skipped`, `failed`, `exception_class`.
+- `url_analytics_cleanup_completed`: `dry_run`, `batch_size`, `retention_days`, `cutoff_date`, `examined`, `deleted`, `skipped`, `failed`.
+
+Alert on any sustained `analytics_redirects_total{outcome=failed}` increase, any cleanup batch or run failure, and the absence of a successful cleanup run for more than 26 hours. A useful starting threshold is five recorder failures in five minutes; tune it against redirect volume. The redirect success rate remains the primary availability signal because analytics failures intentionally do not fail redirects.
+
+The daily cleanup deletes only buckets strictly older than the UTC cutoff, in bounded batches. Preview and then run the same cutoff explicitly when investigating or changing retention:
+
+```bash
+php artisan urls:prune-analytics --dry-run --batch-size=500 --retention-days=365
+php artisan urls:prune-analytics --batch-size=500 --retention-days=365
+```
+
+Take and verify a database backup before reducing retention or clearing a backlog. Analytics rows cascade when a URL is permanently deleted, and pruned buckets cannot be reconstructed because raw events are deliberately not stored. Recovery therefore requires a backup from before the deletion: stop the scheduler, restore the backup to staging, verify the required URL and bucket rows, copy only those rows into production while preserving the `(url_id, date)` uniqueness constraint, then re-enable the schedule. Restoring analytics is optional for redirect availability and should never require restoring visitor-level data.
 
 ### Lifecycle cleanup
 
