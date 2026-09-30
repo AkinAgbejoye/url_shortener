@@ -9,8 +9,12 @@ use App\Metrics\SafeMetricsExporter;
 use App\Metrics\StatsdMetricsExporter;
 use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Sentry\State\HubInterface;
 
 class AppServiceProvider extends ServiceProvider
@@ -48,6 +52,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        RateLimiter::for('login', fn (Request $request): Limit => Limit::perMinute(5)
+            ->by($this->authRateLimitKey($request)));
+
+        RateLimiter::for('register', fn (Request $request): Limit => Limit::perMinute(3)
+            ->by($this->authRateLimitKey($request)));
+    }
+
+    private function authRateLimitKey(Request $request): string
+    {
+        $email = $request->input('email');
+        $normalizedEmail = is_string($email) ? Str::lower(trim($email)) : '';
+
+        return hash('sha256', $normalizedEmail.'|'.$request->ip());
     }
 }

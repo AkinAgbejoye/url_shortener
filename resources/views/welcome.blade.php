@@ -46,6 +46,16 @@
                         <svg data-theme-sun class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" /></svg>
                         <svg data-theme-moon class="hidden size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" /></svg>
                     </button>
+                    @guest
+                        <a href="{{ route('login') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 dark:text-slate-300 dark:hover:text-white">Log in</a>
+                        <a href="{{ route('register') }}" class="rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">Create account</a>
+                    @else
+                        <a href="{{ route('account') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 dark:text-slate-300 dark:hover:text-white">Account</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 dark:text-slate-300 dark:hover:text-white">Log out</button>
+                        </form>
+                    @endguest
                     <a href="https://github.com/AkinAgbejoye/url_shortener" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 dark:text-slate-300 dark:hover:text-white" rel="noreferrer">View on GitHub</a>
                 </div>
             </header>
