@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Contracts\ExternalExceptionReporter;
+use App\Models\User;
 use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
+use App\Services\ApiKeyService;
+use App\Services\UrlManagementService;
 use App\Services\UrlShortenerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
@@ -24,6 +27,7 @@ class ExceptionReportingTest extends TestCase
             'logging.exception_channel' => 'exceptions',
         ]);
 
+        $apiKey = $this->writeApiKey();
         $logger = \Mockery::mock(LoggerInterface::class);
         $logger->shouldReceive('error')
             ->once()
@@ -46,7 +50,7 @@ class ExceptionReportingTest extends TestCase
 
         $response = $this->withHeaders([
             'Accept' => 'application/json',
-            'Authorization' => 'Bearer top-secret-token',
+            'Authorization' => 'Bearer '.$apiKey,
             'Idempotency-Key' => 'top-secret-idempotency-key',
             'User-Agent' => 'ObservabilityTest/1.0',
             'X-Request-ID' => 'exception-request-id',
@@ -56,7 +60,7 @@ class ExceptionReportingTest extends TestCase
 
         $response->assertInternalServerError();
         $this->assertStringNotContainsString('Controlled application failure.', $response->getContent());
-        $this->assertStringNotContainsString('top-secret', $response->getContent());
+        $this->assertStringNotContainsString($apiKey, $response->getContent());
     }
 
     public function test_a_reporting_failure_does_not_replace_the_original_response(): void
@@ -90,6 +94,7 @@ class ExceptionReportingTest extends TestCase
     public function test_an_external_report_receives_only_the_safe_context_allowlist(): void
     {
         config(['app.debug' => false]);
+        $apiKey = $this->writeApiKey();
         Log::spy();
         $externalReporter = \Mockery::mock(ExternalExceptionReporter::class);
         $externalReporter->shouldReceive('report')
@@ -108,7 +113,7 @@ class ExceptionReportingTest extends TestCase
         $this->failingShortener('External failure.');
 
         $this->withHeaders([
-            'Authorization' => 'Bearer top-secret-token',
+            'Authorization' => 'Bearer '.$apiKey,
             'Idempotency-Key' => 'top-secret-idempotency-key',
             'User-Agent' => 'ExternalTest/1.0',
             'X-Request-ID' => 'external-request-id',
@@ -135,6 +140,30 @@ class ExceptionReportingTest extends TestCase
         $response->assertInternalServerError();
         $this->assertStringNotContainsString('External transport unavailable.', $response->getContent());
         $this->assertStringNotContainsString('Original application failure.', $response->getContent());
+    }
+
+    public function test_authenticated_resource_exceptions_use_the_route_template_not_the_short_code(): void
+    {
+        config(['app.debug' => false]);
+        Log::spy();
+        $apiKey = $this->apiKey(['urls:read']);
+        $externalReporter = \Mockery::mock(ExternalExceptionReporter::class);
+        $externalReporter->shouldReceive('report')
+            ->once()
+            ->with(
+                \Mockery::type(RuntimeException::class),
+                \Mockery::on(fn (array $context): bool => $context['url_path'] === 'api/v1/urls/{shortCode}'
+                    && ! str_contains(json_encode($context, JSON_THROW_ON_ERROR), 'private-alias')),
+            );
+        $this->app->instance(ExternalExceptionReporter::class, $externalReporter);
+
+        $manager = \Mockery::mock(UrlManagementService::class);
+        $manager->shouldReceive('inspect')->once()->andThrow(new RuntimeException('Management failure.'));
+        $this->app->instance(UrlManagementService::class, $manager);
+
+        $this->withToken($apiKey)
+            ->getJson('/api/v1/urls/private-alias')
+            ->assertInternalServerError();
     }
 
     public function test_external_reporting_is_disabled_without_a_dsn(): void
@@ -168,5 +197,19 @@ class ExceptionReportingTest extends TestCase
             ->andThrow(new RuntimeException($message));
 
         $this->app->instance(UrlShortenerService::class, $shortener);
+    }
+
+    private function writeApiKey(): string
+    {
+        return $this->apiKey(['urls:write']);
+    }
+
+    /** @param list<string> $scopes */
+    private function apiKey(array $scopes): string
+    {
+        $user = User::factory()->create(['email' => 'credential-owner@example.com']);
+        $result = app(ApiKeyService::class)->create($user, 'Exception test', $scopes, null);
+
+        return $result['plain_text_key'];
     }
 }

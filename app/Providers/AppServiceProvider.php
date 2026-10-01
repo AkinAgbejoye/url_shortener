@@ -7,6 +7,7 @@ use App\Contracts\MetricsExporter;
 use App\Metrics\NullMetricsExporter;
 use App\Metrics\SafeMetricsExporter;
 use App\Metrics\StatsdMetricsExporter;
+use App\Models\ApiKey;
 use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -75,6 +76,30 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-keys.revoke', fn (Request $request): Limit => Limit::perMinute(
             (int) config('url_shortener.api_keys.revoke_per_minute', 10),
         )->by($this->accountRateLimitKey($request)));
+
+        RateLimiter::for('api-key.requests', function (Request $request): Limit|array {
+            $apiKey = $request->attributes->get('api_key');
+
+            if (! $apiKey instanceof ApiKey) {
+                $outcome = $request->attributes->get('api_key_authentication');
+                $limit = $outcome === 'missing'
+                    ? $this->anonymousApiLimit($request)
+                    : (int) config('url_shortener.api_keys.invalid_requests_per_minute', 10);
+
+                return Limit::perMinute(
+                    $limit,
+                )->by(hash('sha256', 'ip|'.$request->ip()));
+            }
+
+            return [
+                Limit::perMinute(
+                    (int) config('url_shortener.api_keys.requests_per_minute', 60),
+                )->by(hash('sha256', 'key|'.$apiKey->getKey())),
+                Limit::perMinute(
+                    (int) config('url_shortener.api_keys.account_requests_per_minute', 120),
+                )->by(hash('sha256', 'account|'.$apiKey->user_id)),
+            ];
+        });
     }
 
     private function authRateLimitKey(Request $request): string
@@ -88,5 +113,14 @@ class AppServiceProvider extends ServiceProvider
     private function accountRateLimitKey(Request $request): string
     {
         return hash('sha256', ($request->user()?->getAuthIdentifier() ?? 'guest').'|'.$request->ip());
+    }
+
+    private function anonymousApiLimit(Request $request): int
+    {
+        if ($request->isMethod('post') && $request->path() === 'api/v1/urls') {
+            return (int) config('url_shortener.api_keys.anonymous_create_per_minute', 10);
+        }
+
+        return (int) config('url_shortener.api_keys.anonymous_manage_per_minute', 30);
     }
 }

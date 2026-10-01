@@ -116,6 +116,20 @@ Only a SHA-256 hash of the token is stored. Missing, incorrect, unknown, and del
 
 The browser UI can request custom aliases, set expiration in local time, and store recent-link management tokens in local storage so it can update expiration, disable, enable, or delete those links later. Tokens are never rendered into page markup. Clearing recent history or browser storage permanently removes this local management access.
 
+### Authenticate automation with an API key
+
+API keys created from the verified account page authenticate only through `Authorization: Bearer <key>`. Keys in query strings, request bodies, cookies, or browser URLs are ignored. A valid key assigns newly created URLs to its account and can operate only on that account's resources:
+
+| Scope | Allowed API operations |
+| --- | --- |
+| `urls:read` | List `GET /api/v1/urls` and inspect owned URLs. |
+| `urls:write` | Create, claim, update, disable, enable, and delete owned URLs. |
+| `analytics:read` | Read analytics for owned URLs. |
+
+Malformed, unknown, expired, and revoked keys share the same `401 Unauthenticated` response. Valid keys without the required scope receive `403 Forbidden`, while foreign resources remain indistinguishable from missing resources. Existing anonymous creation and `X-Management-Token` access continue to work independently; ownership takes precedence for owned resources, so a management token cannot override a conflicting bearer identity.
+
+Authenticated requests are limited to 60 requests per minute per key and 120 per account by default. Invalid credentials fall back to 10 requests per minute per IP. `last_used_at` is written at most once every five minutes for a hot key. These bounds are configurable under `url_shortener.api_keys`.
+
 ### Read URL analytics
 
 `GET /api/v1/urls/{shortCode}/analytics?range=30d` returns aggregate redirect counts to callers that provide the original `X-Management-Token` header. The range must be a positive number of days followed by `d`, cannot exceed `URL_ANALYTICS_MAX_QUERY_DAYS`, and defaults to `30d`. These requests share the management limit of 30 requests per minute per client. Missing, invalid, unknown, and deleted credentials use the same `404 Not Found` response and do not reveal whether a short code exists.
@@ -195,7 +209,7 @@ GitHub Actions runs backend and frontend coverage thresholds, Pint, ESLint, Pret
 - Configure a persistent database and `CACHE_STORE=redis` in production.
 - Keep `APP_DEBUG=false` and provide a unique `APP_KEY`.
 - Metrics are disabled by default. Set `METRICS_DRIVER=statsd` and configure `METRICS_STATSD_HOST`, `METRICS_STATSD_PORT`, and `METRICS_PREFIX` to send counters and timings to a StatsD-compatible agent.
-- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, `<prefix>.cache_operations_total`, `<prefix>.alias_allocations_total`, and `<prefix>.lifecycle_cleanup_total`. Their bounded labels describe only operation, outcome, alias type, and cleanup record type; aliases, URLs, short codes, request IDs, management tokens, idempotency keys, IP addresses, and user agents are never exported.
+- The metrics are `<prefix>.requests_total`, `<prefix>.request_duration_ms`, `<prefix>.cache_operations_total`, `<prefix>.alias_allocations_total`, `<prefix>.lifecycle_cleanup_total`, and `<prefix>.api_key_authentication_total`. Their bounded labels describe only operation, outcome, alias type, cleanup record type, or authentication outcome; aliases, URLs, short codes, request IDs, API keys, key prefixes, owner data, management tokens, idempotency keys, IP addresses, and user agents are never exported.
 - Useful starting alerts are any sustained cache operation failure, a request `error` rate above 1% for five minutes, p95 request duration above 250 ms, custom alias conflict spikes above the normal campaign baseline, or any generated alias exhaustion event. Tune these thresholds from observed production traffic.
 - Unhandled exceptions are written as JSON to `storage/logs/exceptions-YYYY-MM-DD.log` through the dedicated `LOG_EXCEPTION_CHANNEL`. Set that variable to another configured channel such as `stderr` or `papertrail` for external collection, or to `null` to disable reporting.
 - External exception delivery is disabled when `SENTRY_LARAVEL_DSN` is empty. To enable Sentry, set that DSN plus `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE`; use `SENTRY_SAMPLE_RATE` from `0.0` to `1.0` to control the proportion of error events sent.

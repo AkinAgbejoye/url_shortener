@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SafeRequestPath;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +18,7 @@ class RequestContext
 
         Log::shareContext([
             'request_id' => $requestId,
-            'url_path' => $request->path(),
+            'url_path' => SafeRequestPath::for($request),
         ]);
 
         try {

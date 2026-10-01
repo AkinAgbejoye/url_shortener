@@ -25,6 +25,7 @@ class OperationalMetricsTest extends TestCase
         $metrics->aliasAllocation('custom', 'claimed');
         $metrics->analytics('recorded');
         $metrics->analyticsCleanup('batch', 'deleted');
+        $metrics->apiKeyAuthentication('valid');
 
         $this->assertTrue($exporter->hasCounter('requests_total', [
             'operation' => 'create',
@@ -52,6 +53,9 @@ class OperationalMetricsTest extends TestCase
         $this->assertTrue($exporter->hasCounter('analytics_cleanup_total', [
             'scope' => 'batch',
             'outcome' => 'deleted',
+        ]));
+        $this->assertTrue($exporter->hasCounter('api_key_authentication_total', [
+            'outcome' => 'valid',
         ]));
     }
 

@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Scheduled analytics retention cleanup that prunes daily buckets older than the UTC cutoff in bounded batches with dry-run support, bounded metrics, and failure isolation.
 - Offline end-to-end analytics evidence and a privacy, retention, recovery, metrics, alerts, and structured-event operations runbook.
 - Custom aliases with accessible browser controls, collision-safe allocation, field-specific conflicts, bounded metrics, structured retry logs, browser coverage, and operational guidance.
+- Scoped bearer authentication for owner-isolated URL automation, with bounded usage tracking, layered rate limits, and privacy-safe outcomes.
 
 ### Changed
 
