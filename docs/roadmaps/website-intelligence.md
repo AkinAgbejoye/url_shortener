@@ -2,16 +2,16 @@
 
 ## Status
 
-**Proposed — not scheduled.**
+**Backlog created — implementation not started.**
 
-This document records a possible future product direction. It does not commit the project to a delivery date and should not be converted into implementation issues until the accounts, ownership, and API-key epic in [issue #65](https://github.com/AkinAgbejoye/url_shortener/issues/65) is substantially complete.
+This document records a possible future product direction. It does not commit the project to a delivery date. Delivery is tracked by [epic #83](https://github.com/AkinAgbejoye/url_shortener/issues/83), and implementation should follow the dependency order recorded in its child issues.
 
 The first part of the roadmap should also include these platform capabilities:
 
-6. Abuse reporting and moderation.
-7. Bulk import and export.
-8. Readiness probes and an operational dashboard.
-9. An OpenAPI contract and contract tests.
+6. [Abuse reporting and moderation](https://github.com/AkinAgbejoye/url_shortener/issues/90).
+7. [Bulk import and export](https://github.com/AkinAgbejoye/url_shortener/issues/92).
+8. [Readiness probes and an operational dashboard](https://github.com/AkinAgbejoye/url_shortener/issues/86).
+9. [An OpenAPI contract and contract tests](https://github.com/AkinAgbejoye/url_shortener/issues/85).
 
 ## Vision
 
@@ -108,7 +108,9 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 ## Delivery roadmap
 
-### Phase 0 — Product, policy, and threat model
+Tracking epic: [#83](https://github.com/AkinAgbejoye/url_shortener/issues/83).
+
+### [Phase 0 — Product, policy, and threat model](https://github.com/AkinAgbejoye/url_shortener/issues/84)
 
 - Define allowed and prohibited use cases.
 - Decide supported countries and obtain appropriate legal review for copyright, database rights, privacy, contractual restrictions, and computer-access law.
@@ -119,7 +121,7 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 **Exit condition:** approved product policy, abuse model, data inventory, threat model, and go/no-go decision.
 
-### Phase 1 — Safe single-page acquisition
+### [Phase 1 — Safe single-page acquisition](https://github.com/AkinAgbejoye/url_shortener/issues/87)
 
 - Accept one HTTP or HTTPS URL from an authenticated, verified account.
 - Introduce asynchronous analysis jobs separate from redirect requests.
@@ -133,7 +135,7 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 **Exit condition:** security tests prove that hostile URLs and redirects cannot reach internal services or produce unbounded work.
 
-### Phase 2 — Structured extraction and reports
+### [Phase 2 — Structured extraction and reports](https://github.com/AkinAgbejoye/url_shortener/issues/88)
 
 - Extract page identity, headings, readable content, internal/external links, structured data, pricing signals, calls to action, contact methods, and selected technology indicators.
 - Store observations separately from interpretations.
@@ -144,7 +146,7 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 **Exit condition:** a user can analyze one eligible page and audit where every reported fact came from.
 
-### Phase 3 — Business and opportunity analysis
+### [Phase 3 — Business and opportunity analysis](https://github.com/AkinAgbejoye/url_shortener/issues/89)
 
 - Infer likely audience, value proposition, business model, conversion funnel, and revenue channels.
 - Detect possible opportunities in ecommerce, subscriptions, advertising, affiliate programs, sponsorships, lead generation, premium content, licensing, software, or services.
@@ -157,7 +159,7 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 **Exit condition:** reports are useful, reproducible, source-grounded, and do not claim guaranteed financial outcomes.
 
-### Phase 4 — Verified-domain bounded crawling
+### [Phase 4 — Verified-domain bounded crawling](https://github.com/AkinAgbejoye/url_shortener/issues/91)
 
 - Add DNS, well-known-file, and HTML-meta ownership verification.
 - Honor the Robots Exclusion Protocol and record the policy used for each crawl.
@@ -169,7 +171,7 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 **Exit condition:** a verified owner can analyze a bounded site while operators can explain and stop every request.
 
-### Phase 5 — Authorized site import
+### [Phase 5 — Authorized site import](https://github.com/AkinAgbejoye/url_shortener/issues/93)
 
 - Require current domain verification and a separate reproduction-rights attestation.
 - Create a read-only import preview from sanitized content and approved assets.
@@ -182,7 +184,7 @@ The system must not invent traffic, revenue, demand, conversion, ownership, or p
 
 **Exit condition:** verified owners can produce a safe editable import without creating a credential-harvesting or unauthorized mirroring service.
 
-### Phase 6 — Monitoring and comparison
+### [Phase 6 — Monitoring and comparison](https://github.com/AkinAgbejoye/url_shortener/issues/94)
 
 - Allow opt-in scheduled re-analysis for verified domains.
 - Show evidence-backed changes in content, pricing, calls to action, structured data, and recommendations.
@@ -388,7 +390,7 @@ Alerts should cover blocked-network probes, unusual per-domain volume, failure-r
 9. Which targets are categorically blocked from analysis or import?
 10. Is publishing imported content part of this product, or only generating an editable export?
 
-Only after these decisions and Phase 0 exit criteria are satisfied should this roadmap be converted into a GitHub epic and implementation issues.
+Phase 0 must resolve these decisions and satisfy its exit criteria before dependent implementation issues begin.
 
 ## References
 
