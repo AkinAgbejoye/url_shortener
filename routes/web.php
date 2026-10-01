@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\UrlController;
+use App\Http\Controllers\Api\UrlManagementController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\OwnerUrlController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -25,6 +27,19 @@ Route::middleware('guest')->group(function (): void {
 });
 Route::middleware('auth')->group(function (): void {
     Route::view('/account', 'account')->name('account');
+    Route::prefix('/account/urls')->middleware('throttle:30,1')->group(function (): void {
+        Route::get('/', [OwnerUrlController::class, 'index'])->name('account.urls.index');
+        Route::post('/', [UrlController::class, 'store'])->name('account.urls.store');
+        Route::prefix('/{shortCode}')->controller(UrlManagementController::class)->group(function (): void {
+            Route::get('/', 'show')->name('account.urls.show');
+            Route::get('/analytics', 'analytics')->name('account.urls.analytics');
+            Route::post('/claim', 'claim')->middleware('verified')->name('account.urls.claim');
+            Route::patch('/', 'update')->name('account.urls.update');
+            Route::post('/disable', 'disable')->name('account.urls.disable');
+            Route::post('/enable', 'enable')->name('account.urls.enable');
+            Route::delete('/', 'destroy')->name('account.urls.destroy');
+        });
+    });
     Route::get('/verify-email', EmailVerificationPromptController::class)->name('verification.notice');
     Route::get('/verify-email/{id}/{hash}', VerifyEmailController::class)
         ->middleware('signed')
