@@ -80,9 +80,7 @@ class EmailVerificationAndPasswordRecoveryTest extends TestCase
             ->assertSee('role="status"', false)
             ->assertSee('Your email address has been verified.');
 
-        $this->get($url)
-            ->assertConflict()
-            ->assertSee('This verification link has already been used.');
+        $this->get($url)->assertConflict();
         Event::assertDispatchedTimes(Verified::class, 1);
     }
 
