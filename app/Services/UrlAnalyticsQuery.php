@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Rules\AnalyticsRange;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
@@ -20,13 +21,13 @@ class UrlAnalyticsQuery
      *     series: array<int, array{date: string, redirect_count: int}>
      * }
      */
-    public function forUrl(string $shortCode, ?string $token, int $days): array
+    public function forUrl(string $shortCode, ?string $token, int $days, ?User $user = null): array
     {
         if ($days < 1 || $days > AnalyticsRange::maximumDays()) {
             throw new InvalidArgumentException('Analytics range is outside the configured bounds.');
         }
 
-        $url = $this->manager->inspect($shortCode, $token);
+        $url = $this->manager->inspect($shortCode, $token, $user);
         $end = CarbonImmutable::now('UTC')->startOfDay();
         $start = $end->subDays($days - 1);
         $counts = $url->dailyAnalytics()

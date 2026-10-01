@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\IdempotencyKey;
 use App\Models\Url;
+use App\Models\User;
 use App\Services\UrlCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,6 +41,22 @@ class UrlManagementTest extends TestCase
         ], $headers)->assertOk();
         $this->assertNull($replay->headers->get('X-Management-Token'));
         $this->assertSame($created->json(), $replay->json());
+    }
+
+    public function test_authenticated_creation_assigns_the_owner_without_minting_a_management_token(): void
+    {
+        $owner = User::factory()->create();
+
+        $created = $this->actingAs($owner)->postJson('/api/v1/urls', [
+            'long_url' => 'https://owned.example',
+        ])->assertCreated();
+
+        $this->assertNull($created->headers->get('X-Management-Token'));
+        $this->assertDatabaseHas('urls', [
+            'short_code' => $created->json('short_code'),
+            'owner_id' => $owner->id,
+            'management_token_hash' => null,
+        ]);
     }
 
     public function test_missing_invalid_and_unknown_credentials_share_the_same_not_found_response(): void
@@ -90,6 +107,88 @@ class UrlManagementTest extends TestCase
         $this->asManager($token)->patchJson("/api/v1/urls/{$shortCode}", [
             'expires_at' => null,
         ])->assertOk()->assertJsonPath('expires_at', null);
+    }
+
+    public function test_the_owner_can_manage_their_url_without_a_management_token(): void
+    {
+        $owner = User::factory()->create();
+        $otherOwner = User::factory()->create();
+        $url = Url::create([
+            'owner_id' => $owner->id,
+            'short_code' => 'owned-by-ada',
+            'long_url' => 'https://owned.example',
+        ]);
+        Cache::put("url:{$url->short_code}", ['stale' => true], now()->addHour());
+
+        $this->actingAs($owner)->getJson("/api/v1/urls/{$url->short_code}")
+            ->assertOk()
+            ->assertJsonPath('long_url', 'https://owned.example');
+
+        $this->actingAs($owner)->postJson("/api/v1/urls/{$url->short_code}/disable")
+            ->assertOk()
+            ->assertJsonPath('status', 'disabled');
+
+        $this->assertNull(Cache::get("url:{$url->short_code}"));
+        $this->actingAs($otherOwner)->getJson("/api/v1/urls/{$url->short_code}")->assertNotFound();
+        $this->withHeader('X-Management-Token', str_repeat('a', 64))
+            ->getJson("/api/v1/urls/{$url->short_code}")
+            ->assertNotFound();
+    }
+
+    public function test_authenticated_users_can_claim_an_anonymous_url_once_with_its_management_token(): void
+    {
+        $owner = User::factory()->create();
+        $otherOwner = User::factory()->create();
+        [$shortCode, $token] = $this->createManagedUrl();
+        Cache::put("url:{$shortCode}", ['stale' => true], now()->addHour());
+
+        $this->actingAs($owner)
+            ->withHeader('X-Management-Token', $token)
+            ->postJson("/api/v1/urls/{$shortCode}/claim")
+            ->assertOk()
+            ->assertJsonPath('short_code', $shortCode);
+
+        $this->assertNull(Cache::get("url:{$shortCode}"));
+        $this->assertDatabaseHas('urls', [
+            'short_code' => $shortCode,
+            'owner_id' => $owner->id,
+            'management_token_hash' => null,
+        ]);
+
+        $this->actingAs($otherOwner)
+            ->withHeader('X-Management-Token', $token)
+            ->getJson("/api/v1/urls/{$shortCode}")
+            ->assertNotFound();
+        $this->actingAs($otherOwner)
+            ->withHeader('X-Management-Token', $token)
+            ->postJson("/api/v1/urls/{$shortCode}/claim")
+            ->assertNotFound();
+        $this->actingAs($owner)->getJson("/api/v1/urls/{$shortCode}")->assertOk();
+    }
+
+    public function test_claim_requires_a_verified_account_and_a_valid_anonymous_token(): void
+    {
+        [$shortCode, $token] = $this->createManagedUrl();
+
+        $this->withHeader('X-Management-Token', $token)
+            ->postJson("/api/v1/urls/{$shortCode}/claim")
+            ->assertUnauthorized();
+
+        $this->actingAs(User::factory()->unverified()->create())
+            ->withHeader('X-Management-Token', $token)
+            ->postJson("/api/v1/urls/{$shortCode}/claim")
+            ->assertForbidden();
+
+        $this->actingAs(User::factory()->create())
+            ->withHeader('X-Management-Token', str_repeat('0', 64))
+            ->postJson("/api/v1/urls/{$shortCode}/claim")
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('urls', [
+            'short_code' => $shortCode,
+            'owner_id' => null,
+            'management_token_hash' => hash('sha256', $token),
+        ]);
     }
 
     public function test_disable_and_enable_are_idempotent_and_invalidate_redirect_cache(): void
@@ -160,6 +259,27 @@ class UrlManagementTest extends TestCase
             ->assertInternalServerError();
 
         $this->assertNull(Url::where('short_code', $shortCode)->firstOrFail()->disabled_at);
+    }
+
+    public function test_a_cache_invalidation_failure_rolls_back_a_claim(): void
+    {
+        $owner = User::factory()->create();
+        [$shortCode, $token] = $this->createManagedUrl();
+        $cache = \Mockery::mock(UrlCache::class);
+        $cache->shouldReceive('forget')->once()->with($shortCode)
+            ->andThrow(new RuntimeException('Cache unavailable'));
+        $this->app->instance(UrlCache::class, $cache);
+
+        $this->actingAs($owner)
+            ->withHeader('X-Management-Token', $token)
+            ->postJson("/api/v1/urls/{$shortCode}/claim")
+            ->assertInternalServerError();
+
+        $this->assertDatabaseHas('urls', [
+            'short_code' => $shortCode,
+            'owner_id' => null,
+            'management_token_hash' => hash('sha256', $token),
+        ]);
     }
 
     /** @return array{string, string} */

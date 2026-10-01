@@ -23,13 +23,14 @@ class UrlManagementController extends Controller
             $shortCode,
             $request->managementToken(),
             $request->rangeDays(),
+            $request->user(),
         ));
     }
 
     public function show(string $shortCode, Request $request, UrlManagementService $manager): JsonResponse
     {
         return response()->json($this->resource(
-            $manager->inspect($shortCode, $this->token($request)),
+            $manager->inspect($shortCode, $this->token($request), $request->user()),
         ));
     }
 
@@ -42,28 +43,36 @@ class UrlManagementController extends Controller
             $shortCode,
             $request->managementToken(),
             $request->expiresAt(),
+            $request->user(),
         )));
     }
 
     public function disable(string $shortCode, Request $request, UrlManagementService $manager): JsonResponse
     {
         return response()->json($this->resource(
-            $manager->disable($shortCode, $this->token($request)),
+            $manager->disable($shortCode, $this->token($request), $request->user()),
         ));
     }
 
     public function enable(string $shortCode, Request $request, UrlManagementService $manager): JsonResponse
     {
         return response()->json($this->resource(
-            $manager->enable($shortCode, $this->token($request)),
+            $manager->enable($shortCode, $this->token($request), $request->user()),
         ));
     }
 
     public function destroy(string $shortCode, Request $request, UrlManagementService $manager): Response
     {
-        $manager->delete($shortCode, $this->token($request));
+        $manager->delete($shortCode, $this->token($request), $request->user());
 
         return response()->noContent();
+    }
+
+    public function claim(string $shortCode, Request $request, UrlManagementService $manager): JsonResponse
+    {
+        return response()->json($this->resource(
+            $manager->claim($shortCode, $this->token($request), $request->user()),
+        ));
     }
 
     private function token(Request $request): ?string

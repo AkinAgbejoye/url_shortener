@@ -12,6 +12,7 @@ Route::prefix('/v1/urls/{shortCode}')
     ->group(function (): void {
         Route::get('/', 'show');
         Route::get('/analytics', 'analytics');
+        Route::post('/claim', 'claim')->middleware(['auth', 'verified']);
         Route::patch('/', 'update');
         Route::post('/disable', 'disable');
         Route::post('/enable', 'enable');
