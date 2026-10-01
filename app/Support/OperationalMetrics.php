@@ -25,6 +25,16 @@ class OperationalMetrics
 
     private const ANALYTICS_CLEANUP_OUTCOMES = ['deleted', 'failed', 'skipped', 'succeeded'];
 
+    private const API_KEY_AUTHENTICATION_OUTCOMES = [
+        'expired',
+        'invalid',
+        'malformed',
+        'missing',
+        'revoked',
+        'unknown',
+        'valid',
+    ];
+
     private const REQUEST_OPERATIONS = ['create', 'redirect'];
 
     private const REQUEST_OUTCOMES = [
@@ -100,6 +110,19 @@ class OperationalMetrics
 
         $this->exporter->increment('analytics_cleanup_total', [
             'scope' => $scope,
+            'outcome' => $outcome,
+        ]);
+    }
+
+    public function apiKeyAuthentication(string $outcome): void
+    {
+        $this->ensureAllowed(
+            $outcome,
+            self::API_KEY_AUTHENTICATION_OUTCOMES,
+            'API key authentication outcome',
+        );
+
+        $this->exporter->increment('api_key_authentication_total', [
             'outcome' => $outcome,
         ]);
     }

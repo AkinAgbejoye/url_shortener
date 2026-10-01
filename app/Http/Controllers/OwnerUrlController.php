@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Url;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -10,9 +11,12 @@ class OwnerUrlController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
         $perPage = min(25, max(1, $request->integer('per_page', 10)));
         $urls = Url::query()
-            ->owned($request->user())
+            ->owned($user)
             ->withSum('dailyAnalytics as total_redirects', 'redirect_count')
             ->orderByDesc('created_at')
             ->orderByDesc('id')

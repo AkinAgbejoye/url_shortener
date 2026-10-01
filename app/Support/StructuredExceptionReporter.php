@@ -20,7 +20,7 @@ class StructuredExceptionReporter
                 $request?->attributes->get('request_id'),
                 255,
             ),
-            'url_path' => $this->boundedValue($request?->path(), 2048),
+            'url_path' => $this->boundedValue(SafeRequestPath::for($request), 2048),
             'http_method' => $request?->method(),
             'user_agent' => $this->boundedValue($request?->userAgent(), 512),
         ];

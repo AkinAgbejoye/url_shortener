@@ -65,4 +65,9 @@ class ApiKey extends Model
 
         return 'active';
     }
+
+    public function allows(string $scope): bool
+    {
+        return in_array($scope, $this->scopes ?? [], true);
+    }
 }

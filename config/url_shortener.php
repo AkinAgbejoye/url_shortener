@@ -47,6 +47,12 @@ return [
         'create_per_minute' => (int) env('API_KEY_CREATE_PER_MINUTE', 5),
         'revoke_per_minute' => (int) env('API_KEY_REVOKE_PER_MINUTE', 10),
         'list_per_minute' => (int) env('API_KEY_LIST_PER_MINUTE', 30),
+        'requests_per_minute' => (int) env('API_KEY_REQUESTS_PER_MINUTE', 60),
+        'account_requests_per_minute' => (int) env('API_KEY_ACCOUNT_REQUESTS_PER_MINUTE', 120),
+        'invalid_requests_per_minute' => (int) env('API_KEY_INVALID_REQUESTS_PER_MINUTE', 10),
+        'anonymous_create_per_minute' => (int) env('API_ANONYMOUS_CREATE_PER_MINUTE', 10),
+        'anonymous_manage_per_minute' => (int) env('API_ANONYMOUS_MANAGE_PER_MINUTE', 30),
+        'last_used_update_seconds' => (int) env('API_KEY_LAST_USED_UPDATE_SECONDS', 300),
         'scopes' => [
             'urls:read' => 'Read owned link metadata',
             'urls:write' => 'Create and manage owned links',
