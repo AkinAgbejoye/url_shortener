@@ -57,6 +57,12 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('register', fn (Request $request): Limit => Limit::perMinute(3)
             ->by($this->authRateLimitKey($request)));
+
+        RateLimiter::for('password-reset', fn (Request $request): Limit => Limit::perMinute(5)
+            ->by($this->authRateLimitKey($request)));
+
+        RateLimiter::for('verification', fn (Request $request): Limit => Limit::perMinute(3)
+            ->by(hash('sha256', ($request->user()?->getAuthIdentifier() ?? 'guest').'|'.$request->ip())));
     }
 
     private function authRateLimitKey(Request $request): string
