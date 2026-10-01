@@ -169,6 +169,8 @@ Backend tests use an in-memory SQLite database and cache, while frontend unit te
 
 The committed `composer.lock` and `package-lock.json` pin the dependency graph. After `vendor/`, `node_modules/`, and the Playwright Chromium binary have been installed once, disconnecting the network does not change the verification path: backend tests use SQLite, the array cache, frozen clocks, and fake metric exporters; browser tests use only the local application and block non-local HTTP requests.
 
+Account registration sends a time-limited signed email-verification link. Unverified users may navigate safe account pages, while ownership-sensitive routes must use Laravel's `verified` middleware. Password-reset requests always return the same public response whether or not an account exists. A successful reset consumes the token, rotates the remember token, and deletes every database-backed session for the account, so all browsers must log in with the new password. Local mail uses the log transport and tests use the in-memory array transport or notification fakes; neither contacts an external mail service.
+
 ```bash
 git ls-files --error-unmatch composer.lock package-lock.json
 composer validate --strict

@@ -14,6 +14,10 @@
             <h1 class="text-3xl font-bold tracking-tight">Log in</h1>
             <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">Use your account to keep your links organized.</p>
 
+            @if (session('status'))
+                <p class="mt-5 rounded-lg bg-green-100 px-4 py-3 text-sm font-medium text-green-900" role="status">{{ session('status') }}</p>
+            @endif
+
             <form method="POST" action="{{ route('login') }}" class="mt-8 space-y-5" novalidate>
                 @csrf
                 <div>
@@ -29,6 +33,7 @@
                     @error('password')
                         <p id="password-error" class="mt-2 text-sm font-medium text-red-600" role="alert">{{ $message }}</p>
                     @enderror
+                    <a href="{{ route('password.request') }}" class="mt-3 inline-block text-sm font-semibold text-blue-600 dark:text-blue-300">Forgot your password?</a>
                 </div>
                 <button type="submit" class="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
                     Log in

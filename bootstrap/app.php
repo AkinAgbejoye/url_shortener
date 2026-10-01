@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo('/account');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash('token');
+
         $exceptions->context(fn (): array => [
             'request_id' => request()?->attributes->get('request_id'),
             'url_path' => request()?->path(),

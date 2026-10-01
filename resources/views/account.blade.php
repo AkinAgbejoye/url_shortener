@@ -26,6 +26,14 @@
                 <p class="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">
                     You are signed in as {{ auth()->user()->email }}.
                 </p>
+                @if (session('status') === 'email-verified')
+                    <p class="mt-5 rounded-lg bg-green-100 px-4 py-3 text-sm font-medium text-green-900" role="status">Your email address has been verified.</p>
+                @elseif (! auth()->user()->hasVerifiedEmail())
+                    <div class="mt-5 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-950" role="status">
+                        Your email address is not verified. You can continue using safe account pages, but ownership-sensitive features require verification.
+                        <a href="{{ route('verification.notice') }}" class="font-semibold underline">Verify your email</a>.
+                    </div>
+                @endif
                 <a href="{{ route('home') }}" class="mt-8 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-white/20">
                     Shorten a link
                 </a>
