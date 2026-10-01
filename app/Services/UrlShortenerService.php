@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\CustomAliasConflict;
 use App\Models\IdempotencyKey;
 use App\Models\Url;
+use App\Models\User;
 use App\Support\CustomAlias;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -21,9 +22,10 @@ class UrlShortenerService
         ?string $idempotencyKey,
         ?CarbonImmutable $expiresAt = null,
         ?string $customAlias = null,
+        ?User $owner = null,
     ): array {
         $customAlias = $this->canonicalAlias($customAlias);
-        $requestHash = $this->requestHash($longUrl, $expiresAt, $customAlias);
+        $requestHash = $this->requestHash($longUrl, $expiresAt, $customAlias, $owner);
 
         if ($idempotencyKey !== null) {
             $existing = IdempotencyKey::where('key', $idempotencyKey)->first();
@@ -33,13 +35,14 @@ class UrlShortenerService
         }
 
         try {
-            return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash, $expiresAt, $customAlias): array {
-                $managementToken = bin2hex(random_bytes(32));
+            return DB::transaction(function () use ($longUrl, $idempotencyKey, $requestHash, $expiresAt, $customAlias, $owner): array {
+                $managementToken = $owner === null ? bin2hex(random_bytes(32)) : null;
                 $url = Url::create([
+                    'owner_id' => $owner?->getKey(),
                     'long_url' => $longUrl,
                     'short_code' => 'pending-'.Str::uuid(),
                     'expires_at' => $expiresAt,
-                    'management_token_hash' => hash('sha256', $managementToken),
+                    'management_token_hash' => $managementToken === null ? null : hash('sha256', $managementToken),
                 ]);
                 $shortCode = $this->shortCodes->claim($url, $customAlias);
 
@@ -105,8 +108,9 @@ class UrlShortenerService
         string $longUrl,
         ?CarbonImmutable $expiresAt,
         ?string $customAlias,
+        ?User $owner,
     ): string {
-        if ($expiresAt === null && $customAlias === null) {
+        if ($expiresAt === null && $customAlias === null && $owner === null) {
             return hash('sha256', $longUrl);
         }
 
@@ -118,6 +122,10 @@ class UrlShortenerService
 
         if ($customAlias !== null) {
             $intent['custom_alias'] = $customAlias;
+        }
+
+        if ($owner !== null) {
+            $intent['owner_id'] = $owner->getKey();
         }
 
         return hash('sha256', json_encode($intent, JSON_THROW_ON_ERROR));

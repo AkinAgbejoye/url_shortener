@@ -34,6 +34,7 @@ class UrlController extends Controller
                     $request->idempotencyKey(),
                     $expiresAt,
                     $request->customAlias(),
+                    $request->user(),
                 );
             } catch (CustomAliasConflict $exception) {
                 $outcome = 'conflict';

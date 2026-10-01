@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Url;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -98,6 +99,38 @@ class UrlAnalyticsApiTest extends TestCase
             $response->assertNotFound();
             $this->assertSame($responses[0]->json(), $response->json());
         }
+    }
+
+    public function test_owned_analytics_are_available_only_to_the_owner(): void
+    {
+        config()->set('app.debug', false);
+        $this->travelTo(CarbonImmutable::parse('2026-09-28T10:00:00Z'));
+        $owner = User::factory()->create();
+        $otherOwner = User::factory()->create();
+        $url = Url::create([
+            'owner_id' => $owner->id,
+            'short_code' => 'owned-analytics',
+            'long_url' => 'https://owned.example/private',
+        ]);
+        $url->dailyAnalytics()->create(['date' => '2026-09-28', 'redirect_count' => 7]);
+
+        $this->actingAs($owner)
+            ->getJson("/api/v1/urls/{$url->short_code}/analytics?range=1d")
+            ->assertOk()
+            ->assertJsonPath('total_redirects', 7);
+
+        $foreign = $this->actingAs($otherOwner)
+            ->getJson("/api/v1/urls/{$url->short_code}/analytics?range=1d")
+            ->assertNotFound();
+        $anonymousToken = $this->withHeader('X-Management-Token', str_repeat('a', 64))
+            ->getJson("/api/v1/urls/{$url->short_code}/analytics?range=1d")
+            ->assertNotFound();
+        $unknown = $this->actingAs($otherOwner)
+            ->getJson('/api/v1/urls/unknown/analytics?range=1d')
+            ->assertNotFound();
+
+        $this->assertSame($foreign->json(), $anonymousToken->json());
+        $this->assertSame($anonymousToken->json(), $unknown->json());
     }
 
     public function test_analytics_requests_use_the_management_rate_limit(): void
