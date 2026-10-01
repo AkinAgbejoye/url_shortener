@@ -92,6 +92,60 @@
                 <p id="claim-message" class="mt-3 text-sm" aria-live="polite"></p>
             </section>
 
+            <section id="api-keys-panel" data-endpoint="{{ route('account.api-keys.index') }}" class="mt-10" aria-labelledby="api-keys-heading" aria-busy="true">
+                <div class="max-w-3xl">
+                    <h2 id="api-keys-heading" class="text-2xl font-bold">API keys</h2>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Create scoped automation keys for this verified account. New secrets are shown once.</p>
+                </div>
+                @if (! auth()->user()->hasVerifiedEmail())
+                    <div class="mt-5 rounded-lg bg-amber-100 px-4 py-3 text-sm text-amber-950" role="status">
+                        Verify your email before creating API keys.
+                        <a href="{{ route('verification.notice') }}" class="font-semibold underline">Verify your email</a>.
+                    </div>
+                @else
+                    <form id="api-key-form" class="mt-5 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.04]" novalidate>
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div>
+                                <label for="api-key-name" class="text-sm font-semibold">Key name</label>
+                                <input id="api-key-name" name="name" type="text" maxlength="{{ config('url_shortener.api_keys.name_max_length') }}" required class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-white/15 dark:bg-slate-950">
+                            </div>
+                            <div>
+                                <label for="api-key-expires-at" class="text-sm font-semibold">Expiration <span class="font-normal text-slate-500">(optional)</span></label>
+                                <input id="api-key-expires-at" name="expires_at" type="datetime-local" class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-white/15 dark:bg-slate-950">
+                            </div>
+                        </div>
+                        <fieldset>
+                            <legend class="text-sm font-semibold">Scopes</legend>
+                            <div class="mt-3 flex flex-wrap gap-3">
+                                @foreach (config('url_shortener.api_keys.scopes') as $scope => $description)
+                                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-white/15">
+                                        <input type="checkbox" name="api_key_scopes[]" value="{{ $scope }}" class="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" @checked($loop->first)>
+                                        <span><span class="font-semibold">{{ $scope }}</span> {{ $description }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </fieldset>
+                        <div class="max-w-md">
+                            <label for="api-key-password" class="text-sm font-semibold">Current password</label>
+                            <input id="api-key-password" name="password" type="password" autocomplete="current-password" required class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-white/15 dark:bg-slate-950">
+                        </div>
+                        <div>
+                            <button id="api-key-submit" type="submit" class="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60">Create API key</button>
+                        </div>
+                    </form>
+                    <div id="api-key-created" class="mt-5 rounded-2xl border border-green-200 bg-green-50 p-5 dark:border-green-300/20 dark:bg-green-300/[0.06]" hidden>
+                        <label for="api-key-secret" class="text-sm font-semibold text-green-950 dark:text-green-100">Copy this API key now. It will not be shown again.</label>
+                        <input id="api-key-secret" type="text" readonly class="mt-2 block w-full rounded-lg border border-green-300 bg-white px-3 py-3 font-mono text-sm text-slate-950 dark:border-green-300/30">
+                    </div>
+                @endif
+                <div class="mt-6 flex items-center justify-between gap-3">
+                    <p id="api-key-status" class="text-sm text-slate-600 dark:text-slate-300" role="status" aria-live="polite">Loading API keys...</p>
+                    <button id="api-key-retry" type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-white/15" hidden>Retry</button>
+                </div>
+                <p id="api-key-empty" class="mt-6 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-600 dark:border-white/15 dark:text-slate-300" hidden>You have not created any API keys yet.</p>
+                <ul id="api-key-list" class="mt-6 grid gap-5" aria-label="Your API keys"></ul>
+            </section>
+
             <section id="owner-dashboard" data-endpoint="{{ route('account.urls.index') }}" class="mt-10" aria-labelledby="links-heading" aria-busy="true">
                 <div class="flex flex-wrap items-end justify-between gap-4">
                     <div>
