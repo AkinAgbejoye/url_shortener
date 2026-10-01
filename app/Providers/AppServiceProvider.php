@@ -63,6 +63,18 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('verification', fn (Request $request): Limit => Limit::perMinute(3)
             ->by(hash('sha256', ($request->user()?->getAuthIdentifier() ?? 'guest').'|'.$request->ip())));
+
+        RateLimiter::for('api-keys.list', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('url_shortener.api_keys.list_per_minute', 30),
+        )->by($this->accountRateLimitKey($request)));
+
+        RateLimiter::for('api-keys.create', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('url_shortener.api_keys.create_per_minute', 5),
+        )->by($this->accountRateLimitKey($request)));
+
+        RateLimiter::for('api-keys.revoke', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('url_shortener.api_keys.revoke_per_minute', 10),
+        )->by($this->accountRateLimitKey($request)));
     }
 
     private function authRateLimitKey(Request $request): string
@@ -71,5 +83,10 @@ class AppServiceProvider extends ServiceProvider
         $normalizedEmail = is_string($email) ? Str::lower(trim($email)) : '';
 
         return hash('sha256', $normalizedEmail.'|'.$request->ip());
+    }
+
+    private function accountRateLimitKey(Request $request): string
+    {
+        return hash('sha256', ($request->user()?->getAuthIdentifier() ?? 'guest').'|'.$request->ip());
     }
 }

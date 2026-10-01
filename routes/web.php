@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
+use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
@@ -39,6 +40,11 @@ Route::middleware('auth')->group(function (): void {
             Route::post('/enable', 'enable')->name('account.urls.enable');
             Route::delete('/', 'destroy')->name('account.urls.destroy');
         });
+    });
+    Route::prefix('/account/api-keys')->middleware('verified')->controller(ApiKeyController::class)->group(function (): void {
+        Route::get('/', 'index')->middleware('throttle:api-keys.list')->name('account.api-keys.index');
+        Route::post('/', 'store')->middleware('throttle:api-keys.create')->name('account.api-keys.store');
+        Route::delete('/{apiKey}', 'destroy')->middleware('throttle:api-keys.revoke')->name('account.api-keys.destroy');
     });
     Route::get('/verify-email', EmailVerificationPromptController::class)->name('verification.notice');
     Route::get('/verify-email/{id}/{hash}', VerifyEmailController::class)

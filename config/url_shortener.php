@@ -37,4 +37,20 @@ return [
         'retention_days' => (int) env('URL_CLEANUP_RETENTION_DAYS', 30),
         'time' => env('URL_CLEANUP_TIME', '02:30'),
     ],
+
+    'api_keys' => [
+        'max_active_per_user' => (int) env('API_KEY_MAX_ACTIVE_PER_USER', 10),
+        'name_max_length' => (int) env('API_KEY_NAME_MAX_LENGTH', 80),
+        'max_expiration_days' => (int) env('API_KEY_MAX_EXPIRATION_DAYS', 365),
+        'per_page' => (int) env('API_KEY_PER_PAGE', 10),
+        'max_per_page' => (int) env('API_KEY_MAX_PER_PAGE', 25),
+        'create_per_minute' => (int) env('API_KEY_CREATE_PER_MINUTE', 5),
+        'revoke_per_minute' => (int) env('API_KEY_REVOKE_PER_MINUTE', 10),
+        'list_per_minute' => (int) env('API_KEY_LIST_PER_MINUTE', 30),
+        'scopes' => [
+            'urls:read' => 'Read owned link metadata',
+            'urls:write' => 'Create and manage owned links',
+            'analytics:read' => 'Read owned link analytics',
+        ],
+    ],
 ];
