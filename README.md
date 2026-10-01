@@ -130,6 +130,8 @@ Malformed, unknown, expired, and revoked keys share the same `401 Unauthenticate
 
 Authenticated requests are limited to 60 requests per minute per key and 120 per account by default. Invalid credentials fall back to 10 requests per minute per IP. `last_used_at` is written at most once every five minutes for a hot key. These bounds are configurable under `url_shortener.api_keys`.
 
+See [Account security and operations](docs/account-security-operations.md) for the authorization matrix, credential rotation and recovery procedures, backups, alerts, structured events, and the complete environment-variable reference.
+
 ### Read URL analytics
 
 `GET /api/v1/urls/{shortCode}/analytics?range=30d` returns aggregate redirect counts to callers that provide the original `X-Management-Token` header. The range must be a positive number of days followed by `d`, cannot exceed `URL_ANALYTICS_MAX_QUERY_DAYS`, and defaults to `30d`. These requests share the management limit of 30 requests per minute per client. Missing, invalid, unknown, and deleted credentials use the same `404 Not Found` response and do not reveal whether a short code exists.
@@ -177,7 +179,7 @@ npm audit --audit-level=high
 npm run build
 ```
 
-Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright runs the full browser journey against an isolated `database/e2e.sqlite` database. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, custom aliases, validation, idempotency, transaction rollback, generated collision fallback, cache concurrency and failures, redirects, Base62 conversion, form submission, field-specific errors, clipboard behavior, history, themes, lifecycle management, and the complete shortening journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. `npm run test:coverage` enforces frontend line, statement, function, and branch thresholds with the Vitest V8 provider. Successful CI runs retain machine-readable coverage artifacts as `backend-coverage-clover` and `frontend-coverage` for 14 days.
+Backend tests use an in-memory SQLite database and cache, while frontend unit tests use Vitest and jsdom. Playwright recreates an isolated `database/e2e.sqlite` database and uses the array cache, database sessions, in-memory mail, and local-only HTTP routing. Install its browser once with `npx playwright install chromium`. Together the suites cover creation, custom aliases, validation, idempotency, transaction rollback, generated collision fallback, cache concurrency and failures, redirects, Base62 conversion, form submission, field-specific errors, clipboard behavior, history, themes, lifecycle management, the anonymous journey, and the complete registration-to-recovery owner journey. `composer test:coverage` enforces the same 70% minimum used in CI and requires PCOV or Xdebug. `npm run test:coverage` enforces frontend line, statement, function, and branch thresholds with the Vitest V8 provider. Successful CI runs retain machine-readable coverage artifacts as `backend-coverage-clover` and `frontend-coverage` for 14 days.
 
 ### Offline verification
 
