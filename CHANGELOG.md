@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Offline end-to-end analytics evidence and a privacy, retention, recovery, metrics, alerts, and structured-event operations runbook.
 - Custom aliases with accessible browser controls, collision-safe allocation, field-specific conflicts, bounded metrics, structured retry logs, browser coverage, and operational guidance.
 - Scoped bearer authentication for owner-isolated URL automation, with bounded usage tracking, layered rate limits, and privacy-safe outcomes.
+- Offline browser security evidence for registration, verification, ownership, anonymous claiming, analytics, scoped API use, revocation, cross-account isolation, stale-session handling, and password recovery, plus an account operations runbook.
 
 ### Changed
 

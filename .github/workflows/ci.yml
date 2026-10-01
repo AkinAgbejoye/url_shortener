@@ -72,7 +72,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Install npm dependencies
         run: npm ci
-      - name: Run backend analytics, privacy, and application tests with coverage
+      - name: Run backend account security, analytics, privacy, and application tests with coverage
         run: composer test:coverage
       - name: Generate Clover coverage report
         run: |
@@ -94,7 +94,7 @@ jobs:
           retention-days: 14
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run offline analytics and URL browser journeys
+      - name: Run offline anonymous and account security browser journeys
         run: npm run test:e2e
       - name: Upload browser test report
         if: failure()
