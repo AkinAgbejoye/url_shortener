@@ -2,7 +2,7 @@
 
 ## Status
 
-**Backlog created — implementation not started.**
+**Phase 0 governance approved for engineering; production release gates remain closed.**
 
 This document records a possible future product direction. It does not commit the project to a delivery date. Delivery is tracked by [epic #83](https://github.com/AkinAgbejoye/url_shortener/issues/83), and implementation should follow the dependency order recorded in its child issues.
 
@@ -390,7 +390,7 @@ Alerts should cover blocked-network probes, unusual per-domain volume, failure-r
 9. Which targets are categorically blocked from analysis or import?
 10. Is publishing imported content part of this product, or only generating an editable export?
 
-Phase 0 must resolve these decisions and satisfy its exit criteria before dependent implementation issues begin.
+Phase 0 decisions are resolved in the [website intelligence governance and threat model](../website-intelligence-governance.md). That record conditionally approves engineering for a bounded single-page MVP, assigns an owner to every decision and deferral, and keeps public production, verified crawling, import, and publishing closed until their explicit legal, security, privacy, and abuse-review gates pass.
 
 ## References
 
