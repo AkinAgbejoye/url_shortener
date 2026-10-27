@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalysisReportController;
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
 use App\Http\Controllers\ApiKeyController;
@@ -46,6 +47,10 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/', 'index')->middleware('throttle:api-keys.list')->name('account.api-keys.index');
         Route::post('/', 'store')->middleware('throttle:api-keys.create')->name('account.api-keys.store');
         Route::delete('/{apiKey}', 'destroy')->middleware('throttle:api-keys.revoke')->name('account.api-keys.destroy');
+    });
+    Route::prefix('/account/analyses/{analysisId}')->middleware('verified')->controller(AnalysisReportController::class)->group(function (): void {
+        Route::get('/report', 'show')->name('account.analyses.report');
+        Route::get('/report.json', 'download')->name('account.analyses.report.download');
     });
     Route::get('/verify-email', EmailVerificationPromptController::class)->name('verification.notice');
     Route::get('/verify-email/{id}/{hash}', VerifyEmailController::class)

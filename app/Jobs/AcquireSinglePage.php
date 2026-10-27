@@ -7,6 +7,7 @@ use App\Exceptions\AcquisitionFailure;
 use App\Exceptions\AcquisitionPolicyViolation;
 use App\Jobs\Middleware\BoundAnalysisConcurrency;
 use App\Models\AnalysisJob;
+use App\Services\AnalysisReportBuilder;
 use App\Services\SinglePageAcquirer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,7 +41,7 @@ class AcquireSinglePage implements ShouldQueue
         ];
     }
 
-    public function handle(SinglePageAcquirer $acquirer): void
+    public function handle(SinglePageAcquirer $acquirer, AnalysisReportBuilder $reportBuilder): void
     {
         $job = AnalysisJob::query()->find($this->analysisJobId);
         if ($job === null || ! $job->state->active()) {
@@ -71,8 +72,16 @@ class AcquireSinglePage implements ShouldQueue
 
                 return;
             }
+            $job->forceFill(['state' => AnalysisState::Analyzing])->save();
+            $generated = $reportBuilder->build($job, $result);
+            $job->refresh();
+            if ($job->cancel_requested_at !== null || $job->state === AnalysisState::CancelRequested) {
+                $this->cancel($job);
+
+                return;
+            }
             $job->forceFill([
-                'state' => AnalysisState::Completed,
+                'state' => $generated['observation_count'] > 0 ? AnalysisState::Completed : AnalysisState::PartiallyCompleted,
                 'extraction' => $result['extraction'],
                 'provenance' => $result['provenance'],
                 'completed_at' => now(),
@@ -116,6 +125,9 @@ class AcquireSinglePage implements ShouldQueue
 
     private function cancel(AnalysisJob $job): void
     {
+        $job->observations()->delete();
+        $job->pageFetches()->delete();
+        $job->report()->delete();
         $this->failSafely($job, AnalysisState::Cancelled, null);
     }
 

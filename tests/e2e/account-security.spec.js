@@ -26,6 +26,24 @@ const accountLink = (purpose, email) =>
         },
     }).trim();
 
+const analysisReport = (email) =>
+    execFileSync('php', ['artisan', 'e2e:analysis-report', email], {
+        encoding: 'utf8',
+        env: {
+            ...process.env,
+            APP_DEBUG: 'false',
+            APP_ENV: 'testing',
+            APP_KEY: applicationKey,
+            APP_URL: localOrigin,
+            CACHE_STORE: 'array',
+            DB_CONNECTION: 'sqlite',
+            DB_DATABASE: 'database/e2e.sqlite',
+            MAIL_MAILER: 'array',
+            QUEUE_CONNECTION: 'sync',
+            SESSION_DRIVER: 'database',
+        },
+    }).trim();
+
 const blockExternalRequests = async (context) => {
     await context.route('**/*', async (route) => {
         const url = new URL(route.request().url());
@@ -104,6 +122,16 @@ test.describe('offline account security journey', () => {
         await expect(page.getByLabel('Key name')).toBeVisible();
         await page.getByRole('button', { name: 'Claim link' }).click();
         await expect(page.locator('#dashboard-status')).toHaveText('Recent link claimed.');
+
+        const reportResponse = await page.goto(analysisReport(ownerEmail));
+        expect(reportResponse.status()).toBe(200);
+        expect(reportResponse.headers()['content-security-policy']).toContain("default-src 'none'");
+        await expect(page.getByRole('heading', { name: /Analysis ana_/ })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Source observations' })).toBeVisible();
+        await expect(page.getByText('Content hash', { exact: true }).first()).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Export JSON' })).toBeVisible();
+        expect(await page.locator('script, iframe, form, img').count()).toBe(0);
+        await page.goto('/account');
 
         await page.getByRole('button', { name: 'Log out' }).click();
         await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();

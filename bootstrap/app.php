@@ -44,6 +44,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->dontFlash('token');
 
         $exceptions->render(function (AnalysisNotFound $exception, Request $request) {
+            if (! $request->expectsJson()) {
+                return response()->view('errors.analysis-not-found', [], 404, [
+                    'Cache-Control' => 'private, no-store, max-age=0',
+                    'Content-Security-Policy' => "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+                    'X-Content-Type-Options' => 'nosniff',
+                ]);
+            }
+
             return response()->json(['error' => [
                 'code' => 'not_found',
                 'message' => 'The requested analysis was not found.',

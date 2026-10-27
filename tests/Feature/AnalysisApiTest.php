@@ -7,6 +7,7 @@ use App\Jobs\AcquireSinglePage;
 use App\Jobs\DeleteAnalysis;
 use App\Models\AnalysisJob;
 use App\Models\User;
+use App\Services\AnalysisReportBuilder;
 use App\Services\ApiKeyService;
 use App\Services\SinglePageAcquirer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,7 +121,7 @@ class AnalysisApiTest extends TestCase
         $job = $this->analysis(User::factory()->create());
         $job->forceFill(['state' => AnalysisState::CancelRequested, 'cancel_requested_at' => now()])->save();
 
-        (new AcquireSinglePage($job->id))->handle(app(SinglePageAcquirer::class));
+        (new AcquireSinglePage($job->id))->handle(app(SinglePageAcquirer::class), app(AnalysisReportBuilder::class));
 
         $this->assertSame(AnalysisState::Cancelled, $job->refresh()->state);
         $this->assertNotNull($job->completed_at);

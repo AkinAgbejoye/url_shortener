@@ -28,7 +28,7 @@ class AnalysisJobService
         $originHash = hash_hmac('sha256', $origin, $secret);
         $domainHash = hash_hmac('sha256', $target->host, $secret);
 
-        $result = DB::transaction(function () use ($owner, $target, $origin, $originHash, $domainHash, $keyHash, $intentHash): array {
+        $result = DB::transaction(function () use ($owner, $target, $origin, $originHash, $domainHash, $keyHash, $intentHash, $userContext): array {
             $existing = AnalysisJob::query()->ownedBy($owner)->where('idempotency_key_hash', $keyHash)->lockForUpdate()->first();
             if ($existing !== null) {
                 if (! hash_equals((string) $existing->intent_hash, $intentHash)) {
@@ -57,6 +57,7 @@ class AnalysisJobService
                 'state' => AnalysisState::Queued,
                 'idempotency_key_hash' => $keyHash,
                 'intent_hash' => $intentHash,
+                'user_context' => array_values($userContext),
                 'expires_at' => now()->addDays(max(1, (int) config('website_intelligence.budgets.retention_days', 30))),
             ]);
 

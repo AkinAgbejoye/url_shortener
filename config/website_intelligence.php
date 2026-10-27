@@ -20,6 +20,15 @@ return [
         'snapshot_key' => 'website-intelligence:operations-snapshot',
         'stale_seconds' => (int) env('INTELLIGENCE_OPERATIONS_STALE_SECONDS', 120),
     ],
+    'reports' => [
+        'schema_version' => '1.0',
+        'max_observations' => (int) env('INTELLIGENCE_MAX_OBSERVATIONS', 500),
+        'max_structured_items' => (int) env('INTELLIGENCE_MAX_STRUCTURED_ITEMS', 50),
+        'text_excerpt_bytes' => (int) env('INTELLIGENCE_TEXT_EXCERPT_BYTES', 1000),
+        'expired_metadata_days' => (int) env('INTELLIGENCE_EXPIRED_METADATA_DAYS', 7),
+        'cleanup_batch_size' => (int) env('INTELLIGENCE_CLEANUP_BATCH_SIZE', 100),
+        'cleanup_time' => env('INTELLIGENCE_CLEANUP_TIME', '04:00'),
+    ],
     'budgets' => [
         'max_concurrent_jobs' => (int) env('INTELLIGENCE_MAX_CONCURRENT_JOBS', 4),
         'max_queue_age_seconds' => (int) env('INTELLIGENCE_MAX_QUEUE_AGE_SECONDS', 300),
