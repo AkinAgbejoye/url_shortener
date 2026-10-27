@@ -2,15 +2,19 @@
 
 namespace App\Providers;
 
+use App\Contracts\DomainNameResolver;
 use App\Contracts\ExternalExceptionReporter;
 use App\Contracts\IntelligenceDependencyProbe;
 use App\Contracts\MetricsExporter;
+use App\Contracts\RemotePageTransport;
 use App\Metrics\NullMetricsExporter;
 use App\Metrics\SafeMetricsExporter;
 use App\Metrics\StatsdMetricsExporter;
 use App\Models\ApiKey;
 use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
+use App\Services\NativeDomainNameResolver;
+use App\Services\PinnedRemotePageTransport;
 use App\Services\SystemIntelligenceDependencyProbe;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
@@ -28,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(IntelligenceDependencyProbe::class, SystemIntelligenceDependencyProbe::class);
+        $this->app->singleton(DomainNameResolver::class, NativeDomainNameResolver::class);
+        $this->app->singleton(RemotePageTransport::class, PinnedRemotePageTransport::class);
 
         $this->app->singleton(ExternalExceptionReporter::class, function (Application $app): ExternalExceptionReporter {
             $dsn = $app->make('config')->get('sentry.dsn');

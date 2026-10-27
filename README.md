@@ -9,6 +9,7 @@ A URL-shortening API built with Laravel 12. It generates deterministic Base62 sh
 - **Base62:** converts each database ID into a compact, unique generated short code and retries bounded fallback candidates if a concurrent claim collides.
 - **Custom aliases:** callers may request a memorable code that is validated, normalized, and claimed atomically.
 - **Idempotency:** repeated requests with the same `Idempotency-Key` and payload replay the original response. Reusing a key with a different URL, expiration, or alias returns `409 Conflict`.
+- **Safe page acquisition:** verified accounts can enqueue bounded, owner-scoped single-page acquisition through `/api/v1/analyses`; see [the deployment and security boundary](docs/safe-single-page-acquisition.md).
 
 ## Requirements
 

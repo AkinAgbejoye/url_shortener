@@ -88,12 +88,13 @@ class UrlOwnershipTest extends TestCase
 
     public function test_owner_migration_rolls_back_and_reapplies_on_sqlite(): void
     {
+        $path = 'database/migrations/2026_09_30_000000_add_owner_to_urls_table.php';
         $this->assertTrue(Schema::hasColumn('urls', 'owner_id'));
 
-        Artisan::call('migrate:rollback', ['--step' => 1]);
+        Artisan::call('migrate:rollback', ['--path' => $path]);
         $this->assertFalse(Schema::hasColumn('urls', 'owner_id'));
 
-        Artisan::call('migrate');
+        Artisan::call('migrate', ['--path' => $path]);
         $this->assertTrue(Schema::hasColumn('urls', 'owner_id'));
     }
 
