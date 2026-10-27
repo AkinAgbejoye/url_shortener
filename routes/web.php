@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\IntelligenceOperationsController;
 use App\Http\Controllers\OwnerUrlController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,5 +55,12 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('throttle:verification')
         ->name('verification.send');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::prefix('/account/operations/intelligence')
+        ->middleware('intelligence.operator')
+        ->controller(IntelligenceOperationsController::class)
+        ->group(function (): void {
+            Route::get('/', 'show')->name('account.operations.intelligence');
+            Route::get('/data', 'data')->name('account.operations.intelligence.data');
+        });
 });
 Route::get('/{shortCode}', [UrlController::class, 'redirect']);

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
+use App\Http\Controllers\IntelligenceProbeController;
 use App\Http\Controllers\OwnerUrlController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,3 +31,5 @@ Route::get('/health', function () {
         'status' => 'ok',
     ]);
 });
+Route::get('/intelligence/liveness', [IntelligenceProbeController::class, 'liveness']);
+Route::get('/intelligence/readiness', [IntelligenceProbeController::class, 'readiness']);
