@@ -59,4 +59,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(ApiKey::class);
     }
+
+    /** @return HasMany<AnalysisJob, $this> */
+    public function analysisJobs(): HasMany
+    {
+        return $this->hasMany(AnalysisJob::class, 'owner_id');
+    }
 }
