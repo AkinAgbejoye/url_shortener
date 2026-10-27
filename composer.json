@@ -50,6 +50,10 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "contract": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Contract"
+        ],
         "test:coverage": [
             "@php artisan config:clear --ansi",
             "@php artisan test --coverage --min=70"

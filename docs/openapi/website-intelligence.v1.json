@@ -1,0 +1,384 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "URL Shortener Website Intelligence API",
+    "version": "1.0.0",
+    "description": "Versioned account-scoped contract for website analysis. All remote content is untrusted and acquisition remains disabled until its release gates are approved."
+  },
+  "servers": [{ "url": "/api", "description": "Application API root" }],
+  "tags": [
+    { "name": "Analyses" },
+    { "name": "Reports" },
+    { "name": "Operations" }
+  ],
+  "paths": {
+    "/v1/analyses": {
+      "get": {
+        "operationId": "listAnalyses",
+        "tags": ["Analyses"],
+        "summary": "List the authenticated account's analyses",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "analyses:read",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/AnalysisCollection" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "operationId": "createAnalysis",
+        "tags": ["Analyses"],
+        "summary": "Queue a bounded single-page analysis",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "analyses:write",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAnalysisRequest" },
+              "example": {
+                "url": "https://public.example/path",
+                "authorization_attestation": "I am authorized to request analysis of this public page.",
+                "user_context": ["The page is intended for independent retailers."]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": { "$ref": "#/components/responses/AnalysisAccepted" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/ValidationFailed" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/v1/analyses/{analysis_id}": {
+      "parameters": [{ "$ref": "#/components/parameters/AnalysisId" }],
+      "get": {
+        "operationId": "getAnalysis",
+        "tags": ["Analyses"],
+        "summary": "Get an account-owned analysis job",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "analyses:read",
+        "responses": {
+          "200": { "$ref": "#/components/responses/AnalysisFound" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAnalysis",
+        "tags": ["Analyses"],
+        "summary": "Queue deletion of an analysis and retained evidence",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "analyses:write",
+        "responses": {
+          "202": { "$ref": "#/components/responses/DeletionAccepted" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/v1/analyses/{analysis_id}/cancellation": {
+      "parameters": [{ "$ref": "#/components/parameters/AnalysisId" }],
+      "post": {
+        "operationId": "cancelAnalysis",
+        "tags": ["Analyses"],
+        "summary": "Request cancellation of bounded analysis work",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "analyses:write",
+        "responses": {
+          "202": { "$ref": "#/components/responses/CancellationAccepted" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/v1/analyses/{analysis_id}/report": {
+      "parameters": [{ "$ref": "#/components/parameters/AnalysisId" }],
+      "get": {
+        "operationId": "getAnalysisReport",
+        "tags": ["Reports"],
+        "summary": "Get a source-grounded analysis report",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "analyses:read",
+        "responses": {
+          "200": { "$ref": "#/components/responses/ReportFound" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "410": { "$ref": "#/components/responses/Expired" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/v1/intelligence/readiness": {
+      "get": {
+        "operationId": "getIntelligenceReadiness",
+        "tags": ["Operations"],
+        "summary": "Read bounded intelligence subsystem readiness",
+        "security": [{ "bearerAuth": [] }],
+        "x-required-scope": "operations:read",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ready" },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "503": { "$ref": "#/components/responses/NotReady" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque scoped API key",
+        "description": "Send an account API key only in the Authorization header."
+      }
+    },
+    "parameters": {
+      "AnalysisId": {
+        "name": "analysis_id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/AnalysisId" }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 16, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+        "example": "analysis-request-0001"
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "schema": { "type": "integer", "minimum": 1, "default": 1 }
+      },
+      "PerPage": {
+        "name": "per_page",
+        "in": "query",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 25, "default": 10 }
+      }
+    },
+    "headers": {
+      "RateLimitLimit": { "schema": { "type": "integer", "minimum": 1 }, "description": "Request ceiling for the current window." },
+      "RateLimitRemaining": { "schema": { "type": "integer", "minimum": 0 }, "description": "Requests remaining in the current window." },
+      "RateLimitReset": { "schema": { "type": "integer", "minimum": 0 }, "description": "Seconds until the current window resets." },
+      "RetryAfter": { "schema": { "type": "integer", "minimum": 1 }, "description": "Seconds before retrying." }
+    },
+    "schemas": {
+      "AnalysisId": { "type": "string", "pattern": "^ana_[A-Za-z0-9]{16,32}$", "example": "ana_01ABCDEFGHJKMNPQ" },
+      "AnalysisState": {
+        "type": "string",
+        "enum": ["queued", "fetching", "analyzing", "completed", "partially_completed", "blocked", "cancel_requested", "cancelled", "expired", "failed"]
+      },
+      "AnalysisJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "state", "submitted_origin", "created_at", "updated_at", "expires_at"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/AnalysisId" },
+          "state": { "$ref": "#/components/schemas/AnalysisState" },
+          "submitted_origin": { "type": "string", "format": "uri", "maxLength": 255, "example": "https://public.example" },
+          "created_at": { "type": "string", "format": "date-time", "example": "2026-10-26T12:00:00Z" },
+          "updated_at": { "type": "string", "format": "date-time", "example": "2026-10-26T12:00:01Z" },
+          "expires_at": { "type": "string", "format": "date-time", "example": "2026-11-25T12:00:00Z" },
+          "safe_failure_category": { "type": ["string", "null"], "enum": [null, "policy_blocked", "network_failure", "unsupported_content", "budget_exceeded", "provider_unavailable", "internal_failure"] }
+        }
+      },
+      "CreateAnalysisRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "authorization_attestation"],
+        "properties": {
+          "url": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https?://" },
+          "authorization_attestation": { "type": "string", "minLength": 20, "maxLength": 500 },
+          "user_context": { "type": "array", "maxItems": 10, "items": { "type": "string", "minLength": 1, "maxLength": 500 } }
+        }
+      },
+      "EvidenceReference": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "source_url", "captured_at", "excerpt"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ev_[A-Za-z0-9]{16,32}$", "example": "ev_01ABCDEFGHJKMNPQ" },
+          "source_url": { "type": "string", "format": "uri", "maxLength": 2048, "example": "https://public.example/path" },
+          "captured_at": { "type": "string", "format": "date-time", "example": "2026-10-26T12:00:00Z" },
+          "excerpt": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      },
+      "Observation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "evidence_ids"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^obs_[A-Za-z0-9]{16,32}$", "example": "obs_01ABCDEFGHJKMNPQ" },
+          "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "evidence_ids": { "type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": true, "items": { "type": "string" } }
+        }
+      },
+      "Inference": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "observation_ids", "confidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^inf_[A-Za-z0-9]{16,32}$", "example": "inf_01ABCDEFGHJKMNPQ" },
+          "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "observation_ids": { "type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": true, "items": { "type": "string" } },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] }
+        }
+      },
+      "Assumption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "requires_validation"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^asm_[A-Za-z0-9]{16,32}$", "example": "asm_01ABCDEFGHJKMNPQ" },
+          "statement": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "requires_validation": { "type": "boolean", "const": true }
+        }
+      },
+      "UserSuppliedContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ctx_[A-Za-z0-9]{16,32}$", "example": "ctx_01ABCDEFGHJKMNPQ" },
+          "statement": { "type": "string", "minLength": 1, "maxLength": 500 }
+        }
+      },
+      "AnalysisReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["analysis_id", "schema_version", "generated_at", "evidence", "observations", "inferences", "assumptions", "user_supplied_context"],
+        "properties": {
+          "analysis_id": { "$ref": "#/components/schemas/AnalysisId" },
+          "schema_version": { "type": "string", "const": "1.0" },
+          "generated_at": { "type": "string", "format": "date-time", "example": "2026-10-26T12:05:00Z" },
+          "evidence": { "type": "array", "maxItems": 500, "items": { "$ref": "#/components/schemas/EvidenceReference" } },
+          "observations": { "type": "array", "maxItems": 500, "items": { "$ref": "#/components/schemas/Observation" } },
+          "inferences": { "type": "array", "maxItems": 200, "items": { "$ref": "#/components/schemas/Inference" } },
+          "assumptions": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/Assumption" } },
+          "user_supplied_context": { "type": "array", "maxItems": 10, "items": { "$ref": "#/components/schemas/UserSuppliedContext" } }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current_page", "last_page", "per_page", "total"],
+        "properties": {
+          "current_page": { "type": "integer", "minimum": 1 },
+          "last_page": { "type": "integer", "minimum": 1 },
+          "per_page": { "type": "integer", "minimum": 1, "maximum": 25 },
+          "total": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": ["bad_request", "unauthenticated", "forbidden", "not_found", "conflict", "validation_failed", "expired", "rate_limited", "internal_error", "not_ready"]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message", "request_id"],
+        "properties": {
+          "code": { "$ref": "#/components/schemas/ErrorCode" },
+          "message": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "request_id": { "type": "string", "minLength": 8, "maxLength": 100, "example": "req_01ABCDEFGHJKMNPQ" },
+          "fields": {
+            "type": "object",
+            "maxProperties": 20,
+            "additionalProperties": { "type": "array", "maxItems": 5, "items": { "type": "string", "maxLength": 200 } }
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": { "error": { "$ref": "#/components/schemas/Error" } }
+      },
+      "Readiness": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "checked_at", "components"],
+        "properties": {
+          "status": { "type": "string", "enum": ["ready", "not_ready"] },
+          "checked_at": { "type": "string", "format": "date-time", "example": "2026-10-26T12:00:00Z" },
+          "components": {
+            "type": "object",
+            "maxProperties": 20,
+            "additionalProperties": { "type": "string", "enum": ["ready", "not_ready", "disabled"] }
+          }
+        }
+      }
+    },
+    "responses": {
+      "AnalysisCollection": {
+        "description": "A bounded page of account-owned analyses.",
+        "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } },
+        "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["data", "meta"], "properties": { "data": { "type": "array", "maxItems": 25, "items": { "$ref": "#/components/schemas/AnalysisJob" } }, "meta": { "$ref": "#/components/schemas/PaginationMeta" } } } } }
+      },
+      "AnalysisAccepted": { "description": "Analysis accepted for bounded asynchronous processing.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalysisJob" } } } },
+      "AnalysisFound": { "description": "Account-owned analysis.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalysisJob" } } } },
+      "CancellationAccepted": { "description": "Cancellation request accepted.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalysisJob" } } } },
+      "DeletionAccepted": { "description": "Deletion request accepted.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalysisJob" } } } },
+      "ReportFound": { "description": "Source-grounded report.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalysisReport" } } } },
+      "Ready": { "description": "Subsystem is ready.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Readiness" } } } },
+      "BadRequest": { "$ref": "#/components/responses/Error400" },
+      "Unauthenticated": { "$ref": "#/components/responses/Error401" },
+      "Forbidden": { "$ref": "#/components/responses/Error403" },
+      "NotFound": { "$ref": "#/components/responses/Error404" },
+      "Conflict": { "$ref": "#/components/responses/Error409" },
+      "Expired": { "$ref": "#/components/responses/Error410" },
+      "ValidationFailed": { "$ref": "#/components/responses/Error422" },
+      "RateLimited": { "$ref": "#/components/responses/Error429" },
+      "ServerError": { "$ref": "#/components/responses/Error500" },
+      "NotReady": { "$ref": "#/components/responses/Error503" },
+      "Error400": { "description": "Malformed request.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error401": { "description": "Missing or invalid credential; all credential failures share this shape.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error403": { "description": "Authenticated credential lacks the required scope.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error404": { "description": "Resource absent or not owned by this account; both cases share this shape.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error409": { "description": "Request conflicts with current state or idempotent intent.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error410": { "description": "Retained report has expired.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error422": { "description": "Bounded field validation failure.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error429": { "description": "Account, key, or origin quota exceeded.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }, "Retry-After": { "$ref": "#/components/headers/RetryAfter" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error500": { "description": "Bounded server failure without internal detail.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+      "Error503": { "description": "Subsystem is intentionally disabled or not ready.", "headers": { "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" }, "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" }, "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }, "Retry-After": { "$ref": "#/components/headers/RetryAfter" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+    },
+    "x-extension-points": {
+      "verified_crawls": { "planned_path": "/v1/crawls", "required_scope": "crawls:write", "issue": 91 },
+      "moderation": { "planned_path": "/v1/moderation/reports", "required_scope": "moderation:write", "issue": 90 },
+      "bulk": { "planned_path": "/v1/bulk/analyses", "required_scope": "analyses:write", "issue": 92 },
+      "authorized_imports": { "planned_path": "/v1/imports", "required_scope": "imports:write", "issue": 93 }
+    }
+  }
+}

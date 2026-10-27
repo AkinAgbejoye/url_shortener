@@ -74,6 +74,8 @@ jobs:
         run: npm ci
       - name: Run backend account security, analytics, privacy, and application tests with coverage
         run: composer test:coverage
+      - name: Validate the website intelligence OpenAPI contract
+        run: composer contract
       - name: Generate Clover coverage report
         run: |
           mkdir -p build/coverage
