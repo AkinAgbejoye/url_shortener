@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="color-scheme" content="light dark">
         <title>Analysis report · Shortly</title>
-        @vite('resources/css/app.css')
+        <link rel="stylesheet" href="{{ asset('report.css') }}">
     </head>
     <body class="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
         <a href="#report-content" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-slate-950">Skip to report</a>

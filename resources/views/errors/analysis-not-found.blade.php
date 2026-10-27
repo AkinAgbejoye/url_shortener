@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Analysis not found · Shortly</title>
-        @vite('resources/css/app.css')
+        <link rel="stylesheet" href="{{ asset('report.css') }}">
     </head>
     <body class="grid min-h-screen place-items-center bg-slate-50 p-6 text-slate-950 dark:bg-slate-950 dark:text-white">
         <main class="max-w-lg rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-white/[0.04]">
