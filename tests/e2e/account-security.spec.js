@@ -236,4 +236,63 @@ test.describe('offline account security journey', () => {
         await recoveryContext.close();
         await ownerContext.close();
     });
+
+    test('public probes and the allowlisted operator dashboard stay bounded and accessible', async ({
+        browser,
+        request,
+    }) => {
+        const liveness = await request.get(`${localOrigin}/api/intelligence/liveness`);
+        expect(liveness.status()).toBe(200);
+        expect(await liveness.json()).toEqual({ status: 'alive' });
+
+        const readiness = await request.get(`${localOrigin}/api/intelligence/readiness`);
+        expect(readiness.status()).toBe(200);
+        expect(await readiness.json()).toMatchObject({
+            status: 'ready',
+            checks: {
+                database: 'ready',
+                queue: 'ready',
+                cache: 'ready',
+                lock: 'ready',
+                storage: 'ready',
+                worker: 'disabled',
+            },
+        });
+
+        const context = await browser.newContext();
+        await blockExternalRequests(context);
+        const page = await context.newPage();
+        const operatorEmail = 'operator@example.test';
+
+        await page.goto('/login');
+        await page.getByLabel('Email address').fill(operatorEmail);
+        await page.getByLabel('Password').fill(password);
+        await page.getByRole('button', { name: 'Log in' }).click();
+
+        if (page.url().endsWith('/login')) {
+            await page.goto('/register');
+            await page.getByLabel('Name').fill('Operations Owner');
+            await page.getByLabel('Email address').fill(operatorEmail);
+            await page.getByLabel('Password', { exact: true }).fill(password);
+            await page.getByLabel('Confirm password').fill(password);
+            await page.getByRole('button', { name: 'Create account' }).click();
+        }
+
+        await page.goto(accountLink('verify', operatorEmail));
+        await page.goto('/account/operations/intelligence');
+        await expect(page.getByRole('heading', { name: 'Website intelligence operations' })).toBeVisible();
+        await expect(page.getByRole('status')).toContainText('Readiness: ready');
+        await expect(page.getByRole('alert')).toContainText('signal is missing');
+        await expect(
+            page.getByRole('table', { name: 'Readiness of required website intelligence dependencies' }),
+        ).toBeVisible();
+        await expect(page.getByRole('table', { name: 'Configured budgets aggregate values' })).toBeVisible();
+
+        const markup = await page.content();
+        for (const forbidden of ['correct-horse', 'destination_url', 'owner_id', 'database.internal']) {
+            expect(markup).not.toContain(forbidden);
+        }
+
+        await context.close();
+    });
 });

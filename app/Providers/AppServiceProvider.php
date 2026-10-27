@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\ExternalExceptionReporter;
+use App\Contracts\IntelligenceDependencyProbe;
 use App\Contracts\MetricsExporter;
 use App\Metrics\NullMetricsExporter;
 use App\Metrics\SafeMetricsExporter;
@@ -10,6 +11,7 @@ use App\Metrics\StatsdMetricsExporter;
 use App\Models\ApiKey;
 use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
+use App\Services\SystemIntelligenceDependencyProbe;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
@@ -25,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(IntelligenceDependencyProbe::class, SystemIntelligenceDependencyProbe::class);
+
         $this->app->singleton(ExternalExceptionReporter::class, function (Application $app): ExternalExceptionReporter {
             $dsn = $app->make('config')->get('sentry.dsn');
 

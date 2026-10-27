@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiKey;
+use App\Http\Middleware\EnsureIntelligenceOperator;
 use App\Http\Middleware\RequestContext;
 use App\Http\Middleware\RequireApiKeyScope;
 use App\Support\SafeRequestPath;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'api-key.authenticate' => AuthenticateApiKey::class,
             'api-key.scope' => RequireApiKeyScope::class,
+            'intelligence.operator' => EnsureIntelligenceOperator::class,
         ]);
         $middleware->prependToPriorityList([
             AuthenticatesRequests::class,
