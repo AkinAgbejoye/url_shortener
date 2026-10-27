@@ -13,6 +13,7 @@ use App\Jobs\DeleteAnalysis;
 use App\Models\AnalysisJob;
 use App\Models\User;
 use App\Services\AnalysisJobService;
+use App\Services\AnalysisReportPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -79,11 +80,17 @@ class AnalysisController extends Controller
         return response()->json($snapshot, 202);
     }
 
-    public function report(Request $request, string $analysisId): JsonResponse
+    public function report(Request $request, string $analysisId, AnalysisReportPresenter $presenter): JsonResponse
     {
-        $this->owned($request, $analysisId);
+        $job = $this->owned($request, $analysisId);
+        if ($job->expires_at->isPast() || $job->state === AnalysisState::Expired) {
+            return $this->error($request, 'expired', 'The retained analysis report has expired.', 410);
+        }
+        if (! in_array($job->state, [AnalysisState::Completed, AnalysisState::PartiallyCompleted], true) || ! $job->report()->exists()) {
+            return $this->error($request, 'conflict', 'The analysis report is not available.', 409);
+        }
 
-        return $this->error($request, 'conflict', 'The analysis report is not available.', 409);
+        return response()->json($presenter->present($job));
     }
 
     private function owned(Request $request, string $publicId): AnalysisJob

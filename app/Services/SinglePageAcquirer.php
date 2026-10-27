@@ -16,7 +16,7 @@ class SinglePageAcquirer
         private readonly SafePageExtractor $extractor,
     ) {}
 
-    /** @return array{extraction: array<string, mixed>, provenance: array<string, mixed>} */
+    /** @return array{source_url: string, extraction: array<string, mixed>, provenance: array<string, mixed>} */
     public function acquire(string $url, Closure $cancelled): array
     {
         $startedAt = hrtime(true);
