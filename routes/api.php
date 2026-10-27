@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnalysisController;
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
 use App\Http\Controllers\IntelligenceProbeController;
@@ -25,6 +26,17 @@ Route::prefix('/v1/urls')
             ->middleware('api-key.scope:urls:read,required');
         Route::post('/', [UrlController::class, 'store'])
             ->middleware('api-key.scope:urls:write');
+    });
+Route::prefix('/v1/analyses')
+    ->middleware(['api-key.authenticate', 'throttle:api-key.requests', 'auth', 'verified'])
+    ->controller(AnalysisController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->middleware('api-key.scope:analyses:read,required');
+        Route::post('/', 'store')->middleware('api-key.scope:analyses:write,required');
+        Route::get('/{analysisId}', 'show')->middleware('api-key.scope:analyses:read,required');
+        Route::delete('/{analysisId}', 'destroy')->middleware('api-key.scope:analyses:write,required');
+        Route::post('/{analysisId}/cancellation', 'cancel')->middleware('api-key.scope:analyses:write,required');
+        Route::get('/{analysisId}/report', 'report')->middleware('api-key.scope:analyses:read,required');
     });
 Route::get('/health', function () {
     return response()->json([

@@ -28,6 +28,7 @@ return [
         'retention_days' => (int) env('INTELLIGENCE_RETENTION_DAYS', 30),
         'max_active_per_account' => (int) env('INTELLIGENCE_MAX_ACTIVE_PER_ACCOUNT', 3),
         'max_active_per_origin' => (int) env('INTELLIGENCE_MAX_ACTIVE_PER_ORIGIN', 1),
+        'max_active_per_domain' => (int) env('INTELLIGENCE_MAX_ACTIVE_PER_DOMAIN', 2),
         'max_active_global' => (int) env('INTELLIGENCE_MAX_ACTIVE_GLOBAL', 20),
         'max_redirects' => (int) env('INTELLIGENCE_MAX_REDIRECTS', 3),
         'max_dns_answers' => (int) env('INTELLIGENCE_MAX_DNS_ANSWERS', 8),

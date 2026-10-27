@@ -57,6 +57,8 @@ return [
             'urls:read' => 'Read owned link metadata',
             'urls:write' => 'Create and manage owned links',
             'analytics:read' => 'Read owned link analytics',
+            'analyses:read' => 'Read owned website analyses',
+            'analyses:write' => 'Create and manage owned website analyses',
         ],
     ],
 ];

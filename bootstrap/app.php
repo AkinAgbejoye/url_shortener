@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\AnalysisNotFound;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureIntelligenceOperator;
 use App\Http\Middleware\RequestContext;
@@ -10,6 +11,7 @@ use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 
@@ -40,6 +42,14 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash('token');
+
+        $exceptions->render(function (AnalysisNotFound $exception, Request $request) {
+            return response()->json(['error' => [
+                'code' => 'not_found',
+                'message' => 'The requested analysis was not found.',
+                'request_id' => (string) $request->attributes->get('request_id'),
+            ]], 404);
+        });
 
         $exceptions->context(fn (): array => [
             'request_id' => request()?->attributes->get('request_id'),
