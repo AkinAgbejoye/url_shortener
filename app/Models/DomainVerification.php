@@ -41,6 +41,12 @@ class DomainVerification extends Model
         return $this->hasMany(SiteImport::class);
     }
 
+    /** @return HasMany<MonitorSchedule, $this> */
+    public function monitorSchedules(): HasMany
+    {
+        return $this->hasMany(MonitorSchedule::class);
+    }
+
     /** @param Builder<$this> $query */
     public function scopeOwnedBy(Builder $query, User $owner): void
     {

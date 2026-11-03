@@ -61,6 +61,18 @@ return [
         'max_active_per_account' => (int) env('INTELLIGENCE_IMPORT_MAX_ACTIVE_PER_ACCOUNT', 1),
         'publishing_enabled' => false,
     ],
+    'monitoring' => [
+        'enabled' => (bool) env('INTELLIGENCE_MONITORING_ENABLED', true),
+        'minimum_frequency_hours' => (int) env('INTELLIGENCE_MONITORING_MIN_FREQUENCY_HOURS', 24),
+        'max_monthly_runs' => (int) env('INTELLIGENCE_MONITORING_MAX_MONTHLY_RUNS', 31),
+        'max_schedules_per_account' => (int) env('INTELLIGENCE_MONITORING_MAX_SCHEDULES_PER_ACCOUNT', 5),
+        'max_dispatch_per_tick' => (int) env('INTELLIGENCE_MONITORING_MAX_DISPATCH_PER_TICK', 20),
+        'max_backfill_runs' => (int) env('INTELLIGENCE_MONITORING_MAX_BACKFILL_RUNS', 3),
+        'max_pages_per_run' => (int) env('INTELLIGENCE_MONITORING_MAX_PAGES', 5),
+        'max_bytes_per_run' => (int) env('INTELLIGENCE_MONITORING_MAX_BYTES', 2000000),
+        'parser_version' => env('INTELLIGENCE_MONITORING_PARSER_VERSION', 'monitor-parser-v1'),
+        'model_version' => env('INTELLIGENCE_MONITORING_MODEL_VERSION', 'rules-v1'),
+    ],
     'budgets' => [
         'max_concurrent_jobs' => (int) env('INTELLIGENCE_MAX_CONCURRENT_JOBS', 4),
         'max_queue_age_seconds' => (int) env('INTELLIGENCE_MAX_QUEUE_AGE_SECONDS', 300),

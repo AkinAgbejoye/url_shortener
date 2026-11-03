@@ -91,4 +91,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(SiteImport::class, 'owner_id');
     }
+
+    /** @return HasMany<MonitorSchedule, $this> */
+    public function monitorSchedules(): HasMany
+    {
+        return $this->hasMany(MonitorSchedule::class, 'owner_id');
+    }
 }

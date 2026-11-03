@@ -52,6 +52,7 @@
                         <a href="{{ route('account.domains.index') }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Verified-domain crawling</a>
                         <a href="{{ route('account.analysis-batches.index') }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Bulk analysis and exports</a>
                         <a href="{{ route('account.site-imports.index') }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Authorized import previews</a>
+                        <a href="{{ route('account.monitoring.index') }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Scheduled monitoring</a>
                     </nav>
                 @endif
                 @if (session('status') === 'email-verified')

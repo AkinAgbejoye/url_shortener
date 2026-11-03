@@ -99,6 +99,11 @@ Schedule::command(sprintf(
     ->withoutOverlapping(60)
     ->onOneServer();
 
+Schedule::command('intelligence:dispatch-monitors')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(15)
+    ->onOneServer();
+
 Schedule::command(sprintf(
     'intelligence:prune-retention --batch-size=%d --metadata-days=%d',
     config('website_intelligence.reports.cleanup_batch_size'),

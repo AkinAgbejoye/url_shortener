@@ -11,7 +11,7 @@ use RuntimeException;
 
 class BoundedSiteCrawler
 {
-    public function __construct(private readonly CrawlPageFetcher $fetcher) {}
+    public function __construct(private readonly CrawlPageFetcher $fetcher, private readonly ?MonitoringEvidenceCollector $evidence = null) {}
 
     /** @return array<string, int> */
     public function crawl(CrawlJob $job): array
@@ -82,6 +82,7 @@ class BoundedSiteCrawler
                 'crawl_job_id' => $job->id, 'public_id' => 'page_'.Str::ulid(), 'url' => $url,
                 'url_hash' => $hash, 'canonical_hash' => $canonicalHash, 'depth' => $depth,
                 'status_code' => $result->status, 'bytes' => $pageBytes, 'content_hash' => hash('sha256', $result->body),
+                'evidence_snapshot' => ($this->evidence ?? app(MonitoringEvidenceCollector::class))->snapshot($result->body, $result->contentType),
                 'outcome' => $outcome, 'fetched_at' => now(),
             ]);
             if ($outcome === 'fetched' && $depth < $policy['max_depth']) {

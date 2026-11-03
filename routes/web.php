@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\DomainCrawlController;
 use App\Http\Controllers\IntelligenceOperationsController;
 use App\Http\Controllers\ModerationController;
+use App\Http\Controllers\MonitorScheduleController;
 use App\Http\Controllers\OwnerUrlController;
 use App\Http\Controllers\SiteImportController;
 use Illuminate\Support\Facades\Route;
@@ -75,6 +76,12 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/', 'store')->name('account.site-imports.store');
         Route::get('/{importId}/preview', 'preview')->name('account.site-imports.preview');
         Route::post('/{importId}/control', 'control')->name('account.site-imports.control');
+    });
+    Route::prefix('/account/monitoring')->middleware('verified')->controller(MonitorScheduleController::class)->group(function (): void {
+        Route::get('/', 'index')->name('account.monitoring.index');
+        Route::post('/', 'store')->name('account.monitoring.store');
+        Route::post('/{scheduleId}/control', 'control')->name('account.monitoring.control');
+        Route::post('/runs/{runId}/control', 'runControl')->name('account.monitoring.runs.control');
     });
     Route::prefix('/account/analyses/{analysisId}')->middleware('verified')->controller(AnalysisReportController::class)->group(function (): void {
         Route::get('/report', 'show')->name('account.analyses.report');
