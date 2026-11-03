@@ -79,4 +79,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(CrawlJob::class, 'owner_id');
     }
+
+    /** @return HasMany<AnalysisBatch, $this> */
+    public function analysisBatches(): HasMany
+    {
+        return $this->hasMany(AnalysisBatch::class, 'owner_id');
+    }
 }

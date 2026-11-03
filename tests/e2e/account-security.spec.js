@@ -129,6 +129,23 @@ test.describe('offline account security journey', () => {
         await expect(page.getByText(/^shortly-verification=/)).toBeVisible();
         await expect(page.getByRole('button', { name: 'Confirm control' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Start bounded crawl' })).toBeVisible();
+        await page.goto('/account/analysis-batches');
+        await expect(page.getByRole('heading', { name: 'Bulk analysis import and report export' })).toBeVisible();
+        const importRegion = page.getByRole('region', { name: 'Import manifest' });
+        await importRegion.getByLabel('Format').selectOption('json');
+        await importRegion.getByLabel('Manifest').fill(
+            JSON.stringify([
+                {
+                    url: 'https://public.example/about',
+                    authorization_attestation: 'I am authorized to analyze this public page.',
+                    user_context: ['Offline browser preview'],
+                },
+            ]),
+        );
+        await importRegion.getByRole('button', { name: 'Preview only' }).click();
+        await expect(page.getByRole('heading', { name: 'Deterministic preview' })).toBeVisible();
+        await expect(page.getByText('1 valid; 0 invalid.')).toBeVisible();
+        await expect(page.getByText('Row 1: valid')).toBeVisible();
         await page.goto('/account');
         await page.getByRole('button', { name: 'Claim link' }).click();
         await expect(page.locator('#dashboard-status')).toHaveText('Recent link claimed.');

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AnalysisState;
+use App\Models\AnalysisBatch;
 use App\Models\AnalysisJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,14 @@ class AnalysisRetentionPruner
                 }
             }
         });
+
+        if (! $dryRun) {
+            AnalysisBatch::query()->where('expires_at', '<=', $now)->orderBy('id')->chunkById($batchSize, function ($batches): void {
+                foreach ($batches as $batch) {
+                    $batch->delete();
+                }
+            });
+        }
 
         return $counts;
     }

@@ -132,7 +132,7 @@ class WebsiteIntelligenceOpenApiTest extends TestCase
     {
         $extensions = $this->document['components']['x-extension-points'];
         $this->assertSame(
-            ['verified_crawls', 'moderation', 'bulk', 'authorized_imports'],
+            ['verified_crawls', 'moderation', 'authorized_imports'],
             array_keys($extensions),
         );
 
