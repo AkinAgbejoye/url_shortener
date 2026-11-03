@@ -129,6 +129,10 @@ test.describe('offline account security journey', () => {
         await expect(page.getByText(/^shortly-verification=/)).toBeVisible();
         await expect(page.getByRole('button', { name: 'Confirm control' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Start bounded crawl' })).toBeVisible();
+        await page.goto('/account/site-imports');
+        await expect(page.getByRole('heading', { name: 'Authorized site import previews' })).toBeVisible();
+        await expect(page.getByText('Publishing and hosting are disabled.')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Queue sanitized preview' })).toBeDisabled();
         await page.goto('/account/analysis-batches');
         await expect(page.getByRole('heading', { name: 'Bulk analysis import and report export' })).toBeVisible();
         const importRegion = page.getByRole('region', { name: 'Import manifest' });

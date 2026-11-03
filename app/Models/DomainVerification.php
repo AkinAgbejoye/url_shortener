@@ -35,6 +35,12 @@ class DomainVerification extends Model
         return $this->hasMany(CrawlJob::class);
     }
 
+    /** @return HasMany<SiteImport, $this> */
+    public function siteImports(): HasMany
+    {
+        return $this->hasMany(SiteImport::class);
+    }
+
     /** @param Builder<$this> $query */
     public function scopeOwnedBy(Builder $query, User $owner): void
     {

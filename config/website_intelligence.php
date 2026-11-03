@@ -50,6 +50,17 @@ return [
         'max_rows' => (int) env('INTELLIGENCE_BULK_MAX_ROWS', 100),
         'max_active_per_account' => (int) env('INTELLIGENCE_BULK_MAX_ACTIVE_PER_ACCOUNT', 1),
     ],
+    'imports' => [
+        'rights_days' => (int) env('INTELLIGENCE_IMPORT_RIGHTS_DAYS', 7),
+        'max_pages' => 1,
+        'max_assets' => (int) env('INTELLIGENCE_IMPORT_MAX_ASSETS', 20),
+        'max_page_bytes' => (int) env('INTELLIGENCE_IMPORT_MAX_PAGE_BYTES', 1000000),
+        'max_asset_bytes' => (int) env('INTELLIGENCE_IMPORT_MAX_ASSET_BYTES', 2000000),
+        'max_total_bytes' => (int) env('INTELLIGENCE_IMPORT_MAX_TOTAL_BYTES', 10000000),
+        'max_runtime_seconds' => (int) env('INTELLIGENCE_IMPORT_MAX_RUNTIME_SECONDS', 60),
+        'max_active_per_account' => (int) env('INTELLIGENCE_IMPORT_MAX_ACTIVE_PER_ACCOUNT', 1),
+        'publishing_enabled' => false,
+    ],
     'budgets' => [
         'max_concurrent_jobs' => (int) env('INTELLIGENCE_MAX_CONCURRENT_JOBS', 4),
         'max_queue_age_seconds' => (int) env('INTELLIGENCE_MAX_QUEUE_AGE_SECONDS', 300),
