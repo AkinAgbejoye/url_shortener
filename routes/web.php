@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AbuseReportController;
+use App\Http\Controllers\AnalysisBatchController;
 use App\Http\Controllers\AnalysisReportController;
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
@@ -60,6 +61,13 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/{verificationId}', 'revoke')->name('account.domains.revoke');
         Route::post('/{verificationId}/crawls', 'crawl')->name('account.domains.crawls.store');
         Route::post('/crawls/{crawlId}/control', 'control')->name('account.domains.crawls.control');
+    });
+    Route::prefix('/account/analysis-batches')->middleware('verified')->controller(AnalysisBatchController::class)->group(function (): void {
+        Route::get('/', 'index')->name('account.analysis-batches.index');
+        Route::post('/preview', 'preview')->name('account.analysis-batches.preview');
+        Route::post('/', 'store')->name('account.analysis-batches.store');
+        Route::post('/{batchId}/control', 'control')->name('account.analysis-batches.control');
+        Route::post('/exports', 'export')->name('account.analysis-batches.export');
     });
     Route::prefix('/account/analyses/{analysisId}')->middleware('verified')->controller(AnalysisReportController::class)->group(function (): void {
         Route::get('/report', 'show')->name('account.analyses.report');

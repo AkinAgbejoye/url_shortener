@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnalysisBatchController;
 use App\Http\Controllers\Api\AnalysisController;
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
@@ -38,6 +39,18 @@ Route::prefix('/v1/analyses')
         Route::post('/{analysisId}/cancellation', 'cancel')->middleware('api-key.scope:analyses:write,required');
         Route::get('/{analysisId}/report', 'report')->middleware('api-key.scope:analyses:read,required');
         Route::post('/{analysisId}/regeneration', 'regenerate')->middleware('api-key.scope:analyses:write,required');
+    });
+Route::prefix('/v1/analysis-batches')
+    ->middleware(['api-key.authenticate', 'throttle:api-key.requests', 'auth', 'verified'])
+    ->controller(AnalysisBatchController::class)
+    ->group(function (): void {
+        Route::post('/preview', 'preview')->middleware('api-key.scope:analyses:write,required');
+        Route::post('/', 'store')->middleware('api-key.scope:analyses:write,required');
+        Route::post('/exports', 'export')->middleware('api-key.scope:analyses:read,required');
+        Route::get('/{batchId}', 'show')->middleware('api-key.scope:analyses:read,required');
+        Route::post('/{batchId}/cancellation', 'cancel')->middleware('api-key.scope:analyses:write,required');
+        Route::post('/{batchId}/retry', 'retry')->middleware('api-key.scope:analyses:write,required');
+        Route::delete('/{batchId}', 'destroy')->middleware('api-key.scope:analyses:write,required');
     });
 Route::get('/health', function () {
     return response()->json([

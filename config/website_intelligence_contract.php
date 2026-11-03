@@ -45,6 +45,34 @@ return [
             'scope' => 'analyses:write',
             'statuses' => [200, 401, 403, 404, 409, 422, 429, 500],
         ],
+        'previewAnalysisBatch' => [
+            'method' => 'post', 'path' => '/v1/analysis-batches/preview', 'scope' => 'analyses:write',
+            'statuses' => [200, 401, 403, 422, 429],
+        ],
+        'createAnalysisBatch' => [
+            'method' => 'post', 'path' => '/v1/analysis-batches', 'scope' => 'analyses:write',
+            'statuses' => [202, 401, 403, 422, 429],
+        ],
+        'getAnalysisBatch' => [
+            'method' => 'get', 'path' => '/v1/analysis-batches/{batch_id}', 'scope' => 'analyses:read',
+            'statuses' => [200, 401, 403, 404, 429],
+        ],
+        'deleteAnalysisBatch' => [
+            'method' => 'delete', 'path' => '/v1/analysis-batches/{batch_id}', 'scope' => 'analyses:write',
+            'statuses' => [204, 401, 403, 404, 429],
+        ],
+        'cancelAnalysisBatch' => [
+            'method' => 'post', 'path' => '/v1/analysis-batches/{batch_id}/cancellation', 'scope' => 'analyses:write',
+            'statuses' => [202, 401, 403, 404, 429],
+        ],
+        'retryAnalysisBatch' => [
+            'method' => 'post', 'path' => '/v1/analysis-batches/{batch_id}/retry', 'scope' => 'analyses:write',
+            'statuses' => [202, 401, 403, 404, 409, 429],
+        ],
+        'exportAnalysisReports' => [
+            'method' => 'post', 'path' => '/v1/analysis-batches/exports', 'scope' => 'analyses:read',
+            'statuses' => [200, 401, 403, 422, 429],
+        ],
         'getIntelligenceReadiness' => [
             'method' => 'get',
             'path' => '/v1/intelligence/readiness',

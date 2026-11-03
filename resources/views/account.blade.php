@@ -47,6 +47,12 @@
                 <p class="text-sm font-semibold text-blue-600 dark:text-blue-300">Signed in as {{ auth()->user()->email }}</p>
                 <h1 class="mt-2 text-4xl font-bold tracking-tight">Your links</h1>
                 <p class="mt-3 text-slate-600 dark:text-slate-300">Create, inspect, and manage every link owned by your account.</p>
+                @if (auth()->user()->hasVerifiedEmail())
+                    <nav class="mt-4 flex flex-wrap gap-4" aria-label="Website intelligence workflows">
+                        <a href="{{ route('account.domains.index') }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Verified-domain crawling</a>
+                        <a href="{{ route('account.analysis-batches.index') }}" class="font-semibold text-blue-700 underline dark:text-blue-300">Bulk analysis and exports</a>
+                    </nav>
+                @endif
                 @if (session('status') === 'email-verified')
                     <p class="mt-5 rounded-lg bg-green-100 px-4 py-3 text-sm font-medium text-green-900" role="status">Your email address has been verified.</p>
                 @elseif (! auth()->user()->hasVerifiedEmail())

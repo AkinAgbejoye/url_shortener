@@ -45,6 +45,11 @@ return [
         'max_runtime_seconds' => (int) env('INTELLIGENCE_CRAWL_MAX_RUNTIME_SECONDS', 300),
         'max_active_per_account' => (int) env('INTELLIGENCE_CRAWL_MAX_ACTIVE_PER_ACCOUNT', 1),
     ],
+    'bulk' => [
+        'max_manifest_bytes' => (int) env('INTELLIGENCE_BULK_MAX_BYTES', 100000),
+        'max_rows' => (int) env('INTELLIGENCE_BULK_MAX_ROWS', 100),
+        'max_active_per_account' => (int) env('INTELLIGENCE_BULK_MAX_ACTIVE_PER_ACCOUNT', 1),
+    ],
     'budgets' => [
         'max_concurrent_jobs' => (int) env('INTELLIGENCE_MAX_CONCURRENT_JOBS', 4),
         'max_queue_age_seconds' => (int) env('INTELLIGENCE_MAX_QUEUE_AGE_SECONDS', 300),
