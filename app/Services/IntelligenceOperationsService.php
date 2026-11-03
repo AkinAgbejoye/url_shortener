@@ -17,6 +17,7 @@ class IntelligenceOperationsService
         'moderation' => ['received', 'reviewing', 'resolved', 'appeals', 'active_blocks', 'notification_failures'],
         'crawling' => ['queued', 'running', 'paused', 'completed', 'failed', 'robots_blocked', 'verification_expired'],
         'bulk' => ['queued', 'running', 'completed', 'partially_completed', 'failed', 'cancelled', 'rows_created', 'rows_failed'],
+        'imports' => ['queued', 'importing', 'preview_ready', 'partially_ready', 'confirmed', 'failed', 'cancelled', 'taken_down', 'assets_rejected'],
     ];
 
     /** @return array<string, mixed> */

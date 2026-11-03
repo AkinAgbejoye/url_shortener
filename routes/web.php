@@ -17,6 +17,7 @@ use App\Http\Controllers\DomainCrawlController;
 use App\Http\Controllers\IntelligenceOperationsController;
 use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\OwnerUrlController;
+use App\Http\Controllers\SiteImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -68,6 +69,12 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/', 'store')->name('account.analysis-batches.store');
         Route::post('/{batchId}/control', 'control')->name('account.analysis-batches.control');
         Route::post('/exports', 'export')->name('account.analysis-batches.export');
+    });
+    Route::prefix('/account/site-imports')->middleware('verified')->controller(SiteImportController::class)->group(function (): void {
+        Route::get('/', 'index')->name('account.site-imports.index');
+        Route::post('/', 'store')->name('account.site-imports.store');
+        Route::get('/{importId}/preview', 'preview')->name('account.site-imports.preview');
+        Route::post('/{importId}/control', 'control')->name('account.site-imports.control');
     });
     Route::prefix('/account/analyses/{analysisId}')->middleware('verified')->controller(AnalysisReportController::class)->group(function (): void {
         Route::get('/report', 'show')->name('account.analyses.report');

@@ -85,4 +85,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(AnalysisBatch::class, 'owner_id');
     }
+
+    /** @return HasMany<SiteImport, $this> */
+    public function siteImports(): HasMany
+    {
+        return $this->hasMany(SiteImport::class, 'owner_id');
+    }
 }
