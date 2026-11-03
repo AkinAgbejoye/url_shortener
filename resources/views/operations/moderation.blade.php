@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Moderation operations · Shortly</title>
-    @vite(['resources/css/app.css'])
+    <link rel="stylesheet" href="{{ asset('report.css') }}">
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
 <a href="#moderation-content" class="sr-only focus:not-sr-only">Skip to moderation queue</a>

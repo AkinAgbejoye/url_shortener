@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Report abuse · Shortly</title>
-    @vite(['resources/css/app.css'])
+    <link rel="stylesheet" href="{{ asset('report.css') }}">
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
 <main class="mx-auto max-w-2xl px-5 py-10">
