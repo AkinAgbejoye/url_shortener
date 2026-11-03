@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Enums\AnalysisState;
+use App\Exceptions\AcquisitionPolicyViolation;
 use App\Exceptions\AnalysisConflict;
 use App\Exceptions\AnalysisQuotaExceeded;
 use App\Jobs\AcquireSinglePage;
 use App\Models\AnalysisJob;
+use App\Models\ModerationDomainBlock;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,7 +30,17 @@ class AnalysisJobService
         $originHash = hash_hmac('sha256', $origin, $secret);
         $domainHash = hash_hmac('sha256', $target->host, $secret);
 
+        if ($owner->intelligence_suspended_at !== null
+            || ModerationDomainBlock::query()->where('domain_hash', $domainHash)->whereNull('released_at')->exists()) {
+            throw new AcquisitionPolicyViolation('moderation_blocked');
+        }
+
         $result = DB::transaction(function () use ($owner, $target, $origin, $originHash, $domainHash, $keyHash, $intentHash, $userContext): array {
+            $owner->refresh();
+            if ($owner->intelligence_suspended_at !== null
+                || ModerationDomainBlock::query()->where('domain_hash', $domainHash)->whereNull('released_at')->lockForUpdate()->exists()) {
+                throw new AcquisitionPolicyViolation('moderation_blocked');
+            }
             $existing = AnalysisJob::query()->ownedBy($owner)->where('idempotency_key_hash', $keyHash)->lockForUpdate()->first();
             if ($existing !== null) {
                 if (! hash_equals((string) $existing->intent_hash, $intentHash)) {

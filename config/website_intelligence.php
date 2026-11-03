@@ -32,6 +32,10 @@ return [
     'analysis' => [
         'max_provider_observations' => (int) env('INTELLIGENCE_MAX_PROVIDER_OBSERVATIONS', 100),
     ],
+    'moderation' => [
+        'reports_per_hour' => (int) env('INTELLIGENCE_ABUSE_REPORTS_PER_HOUR', 5),
+        'retention_days' => (int) env('INTELLIGENCE_MODERATION_RETENTION_DAYS', 90),
+    ],
     'budgets' => [
         'max_concurrent_jobs' => (int) env('INTELLIGENCE_MAX_CONCURRENT_JOBS', 4),
         'max_queue_age_seconds' => (int) env('INTELLIGENCE_MAX_QUEUE_AGE_SECONDS', 300),

@@ -78,6 +78,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('verification', fn (Request $request): Limit => Limit::perMinute(3)
             ->by(hash('sha256', ($request->user()?->getAuthIdentifier() ?? 'guest').'|'.$request->ip())));
 
+        RateLimiter::for('abuse-reports', fn (Request $request): Limit => Limit::perHour(
+            max(1, (int) config('website_intelligence.moderation.reports_per_hour', 5)),
+        )->by(hash('sha256', 'abuse|'.$request->ip())));
+
         RateLimiter::for('api-keys.list', fn (Request $request): Limit => Limit::perMinute(
             (int) config('url_shortener.api_keys.list_per_minute', 30),
         )->by($this->accountRateLimitKey($request)));
