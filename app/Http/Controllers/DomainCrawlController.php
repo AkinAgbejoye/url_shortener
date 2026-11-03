@@ -54,6 +54,7 @@ class DomainCrawlController extends Controller
         $verification->forceFill(['revoked_at' => now(), 'verified_until' => now()])->save();
         $verification->crawlJobs()->whereIn('state', ['queued', 'running', 'paused'])->update(['state' => 'cancelled', 'cancel_requested_at' => now(), 'completed_at' => now(), 'updated_at' => now()]);
         $verification->siteImports()->whereIn('state', ['queued', 'importing'])->update(['state' => 'cancelled', 'cancel_requested_at' => now(), 'completed_at' => now(), 'updated_at' => now()]);
+        $verification->monitorSchedules()->where('state', 'active')->update(['state' => 'paused', 'paused_at' => now(), 'updated_at' => now()]);
 
         return back()->with('status', 'Verification revoked and active crawls stopped.');
     }

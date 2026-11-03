@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AnalysisState;
 use App\Models\AnalysisBatch;
 use App\Models\AnalysisJob;
+use App\Models\MonitorSchedule;
 use App\Models\SiteImport;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,11 @@ class AnalysisRetentionPruner
             SiteImport::query()->where('expires_at', '<=', $now)->orderBy('id')->chunkById($batchSize, function ($imports): void {
                 foreach ($imports as $import) {
                     $import->delete();
+                }
+            });
+            MonitorSchedule::query()->where('state', 'deleted')->where('deleted_at', '<=', $deleteBefore)->orderBy('id')->chunkById($batchSize, function ($schedules): void {
+                foreach ($schedules as $schedule) {
+                    $schedule->delete();
                 }
             });
         }

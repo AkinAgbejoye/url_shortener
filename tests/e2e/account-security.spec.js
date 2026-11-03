@@ -150,6 +150,12 @@ test.describe('offline account security journey', () => {
         await expect(page.getByRole('heading', { name: 'Deterministic preview' })).toBeVisible();
         await expect(page.getByText('1 valid; 0 invalid.')).toBeVisible();
         await expect(page.getByText('Row 1: valid')).toBeVisible();
+
+        await page.goto('/account/monitoring');
+        await expect(page.getByRole('heading', { name: 'Scheduled evidence monitoring' })).toBeVisible();
+        await expect(page.getByText('parser or model drift is labelled separately')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Enable monitoring' })).toBeDisabled();
+
         await page.goto('/account');
         await page.getByRole('button', { name: 'Claim link' }).click();
         await expect(page.locator('#dashboard-status')).toHaveText('Recent link claimed.');

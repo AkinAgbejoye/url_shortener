@@ -18,6 +18,7 @@ class IntelligenceOperationsService
         'crawling' => ['queued', 'running', 'paused', 'completed', 'failed', 'robots_blocked', 'verification_expired'],
         'bulk' => ['queued', 'running', 'completed', 'partially_completed', 'failed', 'cancelled', 'rows_created', 'rows_failed'],
         'imports' => ['queued', 'importing', 'preview_ready', 'partially_ready', 'confirmed', 'failed', 'cancelled', 'taken_down', 'assets_rejected'],
+        'monitoring' => ['active_schedules', 'paused_schedules', 'queued_runs', 'running_runs', 'completed_runs', 'failed_runs', 'cancelled_runs', 'missed_runs', 'stale_runs', 'notification_failures', 'oldest_run_age_seconds', 'saturation_percent'],
     ];
 
     /** @return array<string, mixed> */
