@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\DomainCrawlController;
 use App\Http\Controllers\IntelligenceOperationsController;
 use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\OwnerUrlController;
@@ -51,6 +52,14 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/', 'index')->middleware('throttle:api-keys.list')->name('account.api-keys.index');
         Route::post('/', 'store')->middleware('throttle:api-keys.create')->name('account.api-keys.store');
         Route::delete('/{apiKey}', 'destroy')->middleware('throttle:api-keys.revoke')->name('account.api-keys.destroy');
+    });
+    Route::prefix('/account/domains')->middleware('verified')->controller(DomainCrawlController::class)->group(function (): void {
+        Route::get('/', 'index')->name('account.domains.index');
+        Route::post('/', 'challenge')->name('account.domains.challenge');
+        Route::post('/{verificationId}/confirmation', 'confirm')->name('account.domains.confirm');
+        Route::delete('/{verificationId}', 'revoke')->name('account.domains.revoke');
+        Route::post('/{verificationId}/crawls', 'crawl')->name('account.domains.crawls.store');
+        Route::post('/crawls/{crawlId}/control', 'control')->name('account.domains.crawls.control');
     });
     Route::prefix('/account/analyses/{analysisId}')->middleware('verified')->controller(AnalysisReportController::class)->group(function (): void {
         Route::get('/report', 'show')->name('account.analyses.report');

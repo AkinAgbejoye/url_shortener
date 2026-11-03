@@ -120,6 +120,16 @@ test.describe('offline account security journey', () => {
 
         await page.goto(accountLink('verify', ownerEmail));
         await expect(page.getByLabel('Key name')).toBeVisible();
+        await page.goto('/account/domains');
+        await expect(page.getByRole('heading', { name: 'Verified-domain crawling' })).toBeVisible();
+        await page.getByRole('textbox', { name: 'Domain' }).fill(`crawl-${run}.example`);
+        await page.getByRole('combobox', { name: 'Method' }).selectOption('dns_txt');
+        await page.getByRole('button', { name: 'Create challenge' }).click();
+        await expect(page.getByRole('heading', { name: 'One-time verification challenge' })).toBeVisible();
+        await expect(page.getByText(/^shortly-verification=/)).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Confirm control' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Start bounded crawl' })).toBeVisible();
+        await page.goto('/account');
         await page.getByRole('button', { name: 'Claim link' }).click();
         await expect(page.locator('#dashboard-status')).toHaveText('Recent link claimed.');
 
