@@ -29,7 +29,7 @@ PCOV or Xdebug is required for backend coverage. Use `composer test` when iterat
 
 - Keep each commit to one feature or fix and the tests that prove it. Do not defer those tests to a later commit.
 - Put formatting-only changes in a separate commit so behavioral reviews stay clear.
-- Update the README and `CHANGELOG.md` when public behavior or setup changes.
+- Every feature or fix pull request must update `CHANGELOG.md` under `Unreleased`; update the README too when public behavior or setup changes.
 - Use a short, imperative commit message such as `fix: handle cache timeouts`.
 - Keep generated files, credentials, and local `.env` files out of commits.
 

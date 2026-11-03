@@ -1,189 +1,158 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+    push:
+        branches: [main]
+    pull_request:
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  lint:
-    name: Lint and build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: none
-          tools: composer:v2
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/composer/files
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install npm dependencies
-        run: npm ci
-      - name: Check PHP code style
-        run: vendor/bin/pint --test
-      - name: Lint frontend code
-        run: npm run lint
-      - name: Check frontend formatting
-        run: npm run format:check
-      - name: Build frontend assets
-        run: npm run build
+    php-tests:
+        name: PHP tests and coverage
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  coverage: pcov
+                  tools: composer:v2
+            - uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: ${{ runner.os }}-composer-
+            - run: composer install --no-interaction --prefer-dist --no-progress
+            - run: composer test:coverage
+            - run: composer contract
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: pcov
-          tools: composer:v2
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/composer/files
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install npm dependencies
-        run: npm ci
-      - name: Run backend account security, analytics, privacy, and application tests with coverage
-        run: composer test:coverage
-      - name: Validate the website intelligence OpenAPI contract
-        run: composer contract
-      - name: Generate Clover coverage report
-        run: |
-          mkdir -p build/coverage
-          vendor/bin/phpunit --coverage-clover build/coverage/clover.xml
-      - name: Upload backend coverage report
-        uses: actions/upload-artifact@v7
-        with:
-          name: backend-coverage-clover
-          path: build/coverage/clover.xml
-          retention-days: 14
-      - name: Run dashboard and application frontend unit tests with coverage
-        run: npm run test:coverage
-      - name: Upload frontend coverage report
-        uses: actions/upload-artifact@v7
-        with:
-          name: frontend-coverage
-          path: coverage/frontend/
-          retention-days: 14
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Run offline anonymous and account security browser journeys
-        run: npm run test:e2e
-      - name: Upload browser test report
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
+    js-tests:
+        name: JavaScript tests and coverage
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.npm
+                      node_modules
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: ${{ runner.os }}-node-
+            - run: npm ci
+            - run: npm run lint
+            - run: npm run format:check
+            - run: npm run test:coverage
+            - run: npm run build
 
-  audit:
-    name: Dependency audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: none
-          tools: composer:v2
-      - name: Validate Composer configuration
-        run: composer validate --strict
-      - name: Audit Composer dependencies
-        run: composer audit --locked
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Audit npm dependencies
-        run: npm audit --audit-level=high
+    audit:
+        name: Dependency audit
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  coverage: none
+                  tools: composer:v2
+            - uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: ${{ runner.os }}-composer-
+            - run: composer install --no-interaction --prefer-dist --no-progress
+            - run: composer validate --strict
+            - run: composer audit --locked
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.npm
+                      node_modules
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: ${{ runner.os }}-node-
+            - run: npm ci
+            - run: npm audit --audit-level=high
 
-  bootstrap:
-    name: Fresh-clone bootstrap
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: none
-          tools: composer:v2
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/composer/files
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Install npm dependencies
-        run: npm ci
-      - name: Create application environment
-        run: cp .env.example .env
-      - name: Generate application key
-        run: php artisan key:generate --no-interaction
-      - name: Create and migrate SQLite database
-        run: |
-          touch database/database.sqlite
-          php artisan migrate --force --no-interaction
-      - name: Build frontend assets
-        run: npm run build
-      - name: Run PHP tests
-        run: php artisan test
-      - name: Run frontend unit tests
-        run: npm test
-      - name: Smoke test health endpoint
-        run: |
-          php artisan serve --host=127.0.0.1 --port=8000 > /tmp/url-shortener-server.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+    e2e:
+        name: Isolated Playwright e2e
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  coverage: none
+                  tools: composer:v2
+            - uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: ${{ runner.os }}-composer-
+            - run: composer install --no-interaction --prefer-dist --no-progress
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.npm
+                      node_modules
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: ${{ runner.os }}-node-
+            - run: npm ci
+            - run: cp .env.example .env && php artisan key:generate --no-interaction
+            - run: npx playwright install --with-deps chromium
+            - run: npm run test:e2e
 
-          for attempt in {1..20}; do
-            if curl --fail --silent http://127.0.0.1:8000/api/health > /tmp/url-shortener-health.json; then
-              grep --quiet '"status":"ok"' /tmp/url-shortener-health.json
-              exit 0
-            fi
-            sleep 1
-          done
-
-          cat /tmp/url-shortener-server.log
-          exit 1
+    bootstrap:
+        name: Fresh-clone bootstrap
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  coverage: none
+                  tools: composer:v2
+            - uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: ${{ runner.os }}-composer-
+            - run: composer install --no-interaction --prefer-dist --no-progress
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.npm
+                      node_modules
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: ${{ runner.os }}-node-
+            - run: npm ci
+            - run: cp .env.example .env && php artisan key:generate --no-interaction
+            - run: touch database/database.sqlite && php artisan migrate --force --no-interaction
+            - run: npm run build
+            - run: php artisan test
+            - run: npm test
+            - name: Smoke test health endpoint
+              run: |
+                  php artisan serve --host=127.0.0.1 --port=8000 > /tmp/url-shortener-server.log 2>&1 &
+                  server_pid=$!
+                  trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+                  for attempt in {1..20}; do
+                    if curl --fail --silent http://127.0.0.1:8000/api/health | grep --quiet '"status":"ok"'; then
+                      exit 0
+                    fi
+                    sleep 1
+                  done
+                  cat /tmp/url-shortener-server.log
+                  exit 1
