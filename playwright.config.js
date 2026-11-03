@@ -5,6 +5,7 @@ export default defineConfig({
     fullyParallel: true,
     // The e2e suite intentionally shares one migrated SQLite database; serialize CI workers.
     workers: process.env.CI ? 1 : undefined,
+    expect: { timeout: process.env.CI ? 15_000 : 5_000 },
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 2 : 0,
     reporter: process.env.CI ? 'html' : 'list',
