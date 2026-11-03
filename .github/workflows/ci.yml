@@ -97,6 +97,8 @@ jobs:
                   restore-keys: ${{ runner.os }}-composer-
             - run: composer install --no-interaction --prefer-dist --no-progress
             - run: php artisan config:clear --no-interaction
+            - run: composer test:coverage
+            - run: composer contract
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
@@ -108,6 +110,7 @@ jobs:
                   key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
                   restore-keys: ${{ runner.os }}-node-
             - run: npm ci
+            - run: npm run test:coverage
             - run: npx playwright install --with-deps chromium
             - run: npm run test:e2e
 
