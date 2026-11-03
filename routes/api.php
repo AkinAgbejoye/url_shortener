@@ -37,6 +37,7 @@ Route::prefix('/v1/analyses')
         Route::delete('/{analysisId}', 'destroy')->middleware('api-key.scope:analyses:write,required');
         Route::post('/{analysisId}/cancellation', 'cancel')->middleware('api-key.scope:analyses:write,required');
         Route::get('/{analysisId}/report', 'report')->middleware('api-key.scope:analyses:read,required');
+        Route::post('/{analysisId}/regeneration', 'regenerate')->middleware('api-key.scope:analyses:write,required');
     });
 Route::get('/health', function () {
     return response()->json([

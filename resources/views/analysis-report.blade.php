@@ -61,6 +61,33 @@
                     </ol>
                 </section>
 
+                @if ($data['inferences'] !== [])
+                    <section class="mt-10" aria-labelledby="inferences-heading">
+                        <h2 id="inferences-heading" class="text-2xl font-bold">Evidence-backed findings</h2>
+                        <p class="mt-2 text-slate-600 dark:text-slate-300">These are bounded interpretations, not observed facts or guarantees.</p>
+                        <ul class="mt-6 grid gap-5">
+                            @foreach ($data['inferences'] as $finding)
+                                <li class="rounded-xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-400/20 dark:bg-blue-400/10">
+                                    <h3 class="font-semibold">{{ str_replace('_', ' ', ucfirst($finding['category'])) }}</h3>
+                                    <p class="mt-2">{{ $finding['statement'] }}</p>
+                                    <p class="mt-3 text-sm">Confidence: {{ $finding['confidence'] }} · Evidence: {{ implode(', ', $finding['evidence_ids']) }}</p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                @if ($data['assumptions'] !== [])
+                    <section class="mt-10" aria-labelledby="assumptions-heading">
+                        <h2 id="assumptions-heading" class="text-2xl font-bold">Visible assumptions and unknowns</h2>
+                        <ul class="mt-4 list-disc space-y-2 pl-6">
+                            @foreach ($data['assumptions'] as $assumption)
+                                <li>{{ $assumption['statement'] }}</li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
                 @if ($data['user_supplied_context'] !== [])
                     <section class="mt-10" aria-labelledby="context-heading">
                         <h2 id="context-heading" class="text-2xl font-bold">User-supplied context</h2>

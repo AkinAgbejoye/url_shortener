@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\BusinessAnalysisProvider;
 use App\Contracts\DomainNameResolver;
 use App\Contracts\ExternalExceptionReporter;
 use App\Contracts\IntelligenceDependencyProbe;
@@ -15,6 +16,7 @@ use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
 use App\Services\NativeDomainNameResolver;
 use App\Services\PinnedRemotePageTransport;
+use App\Services\RulesOnlyBusinessAnalysisProvider;
 use App\Services\SystemIntelligenceDependencyProbe;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(BusinessAnalysisProvider::class, RulesOnlyBusinessAnalysisProvider::class);
         $this->app->singleton(IntelligenceDependencyProbe::class, SystemIntelligenceDependencyProbe::class);
         $this->app->singleton(DomainNameResolver::class, NativeDomainNameResolver::class);
         $this->app->singleton(RemotePageTransport::class, PinnedRemotePageTransport::class);

@@ -9,7 +9,7 @@ class AnalysisReportPresenter
     /** @return array<string, mixed> */
     public function present(AnalysisJob $job): array
     {
-        $job->loadMissing(['report', 'observations.pageFetch']);
+        $job->loadMissing(['report.findings', 'observations.pageFetch']);
         $report = $job->report;
         if ($report === null) {
             return [];
@@ -41,14 +41,32 @@ class AnalysisReportPresenter
             }
         }
 
+        $inferences = [];
+        $assumptions = [];
+        foreach ($report->findings->sortBy('id') as $finding) {
+            $item = [
+                'id' => $finding->public_id,
+                'category' => $finding->category,
+                'statement' => $finding->statement,
+                'confidence' => $finding->confidence,
+                'evidence_ids' => $finding->evidence_ids,
+                'details' => $finding->details,
+            ];
+            if ($finding->epistemic_type === 'inference') {
+                $inferences[] = $item;
+            } else {
+                $assumptions[] = $item;
+            }
+        }
+
         return [
             'analysis_id' => $job->public_id,
             'schema_version' => $report->schema_version,
             'generated_at' => $report->generated_at->toISOString(),
             'evidence' => $evidence,
             'observations' => $observations,
-            'inferences' => [],
-            'assumptions' => [],
+            'inferences' => $inferences,
+            'assumptions' => $assumptions,
             'user_supplied_context' => $userContext,
         ];
     }

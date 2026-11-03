@@ -29,6 +29,9 @@ return [
         'cleanup_batch_size' => (int) env('INTELLIGENCE_CLEANUP_BATCH_SIZE', 100),
         'cleanup_time' => env('INTELLIGENCE_CLEANUP_TIME', '04:00'),
     ],
+    'analysis' => [
+        'max_provider_observations' => (int) env('INTELLIGENCE_MAX_PROVIDER_OBSERVATIONS', 100),
+    ],
     'budgets' => [
         'max_concurrent_jobs' => (int) env('INTELLIGENCE_MAX_CONCURRENT_JOBS', 4),
         'max_queue_age_seconds' => (int) env('INTELLIGENCE_MAX_QUEUE_AGE_SECONDS', 300),
