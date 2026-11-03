@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class AnalysisReportBuilder
 {
+    public function __construct(private readonly GroundedBusinessAnalyzer $businessAnalyzer) {}
+
     /**
      * @param  array{source_url: string, extraction: array<string, mixed>, provenance: array<string, mixed>}  $result
      * @return array{report: AnalysisReport, observation_count: int}
@@ -58,6 +60,8 @@ class AnalysisReportBuilder
                     'observed_at' => $fetch->fetched_at,
                 ]);
             }
+
+            $this->businessAnalyzer->analyze($report);
 
             return ['report' => $report, 'observation_count' => min(count($candidates), $max)];
         }, 3);

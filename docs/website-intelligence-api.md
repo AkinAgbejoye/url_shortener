@@ -1,6 +1,8 @@
 # Website intelligence API contract
 
-The canonical contract is [`openapi/website-intelligence.v1.json`](openapi/website-intelligence.v1.json). It describes planned account-scoped analysis, report, deletion, cancellation, and readiness endpoints. It does not enable remote acquisition.
+The canonical contract is [`openapi/website-intelligence.v1.json`](openapi/website-intelligence.v1.json). It describes account-scoped analysis, report, grounded-finding regeneration, deletion, cancellation, and readiness endpoints.
+
+Reports keep observations, model or rules-based inferences, assumptions, and user-supplied context separate. Every inference cites retained evidence and carries bounded confidence; missing commercial facts remain visible unknowns. `POST /v1/analyses/{analysis_id}/regeneration` lets an owner replace bounded user context and deterministically regenerate findings without fetching the source again. Provider output is schema-validated and a rules-only fallback is used on provider failure or rejection.
 
 ## Compatibility policy
 

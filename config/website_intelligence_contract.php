@@ -39,6 +39,12 @@ return [
             'scope' => 'analyses:read',
             'statuses' => [200, 401, 403, 404, 409, 410, 429, 500],
         ],
+        'regenerateAnalysisReport' => [
+            'method' => 'post',
+            'path' => '/v1/analyses/{analysis_id}/regeneration',
+            'scope' => 'analyses:write',
+            'statuses' => [200, 401, 403, 404, 409, 422, 429, 500],
+        ],
         'getIntelligenceReadiness' => [
             'method' => 'get',
             'path' => '/v1/intelligence/readiness',

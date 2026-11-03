@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AnalysisReport extends Model
 {
@@ -20,5 +21,11 @@ class AnalysisReport extends Model
     public function analysisJob(): BelongsTo
     {
         return $this->belongsTo(AnalysisJob::class);
+    }
+
+    /** @return HasMany<AnalysisFinding, $this> */
+    public function findings(): HasMany
+    {
+        return $this->hasMany(AnalysisFinding::class);
     }
 }

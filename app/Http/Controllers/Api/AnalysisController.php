@@ -14,6 +14,7 @@ use App\Models\AnalysisJob;
 use App\Models\User;
 use App\Services\AnalysisJobService;
 use App\Services\AnalysisReportPresenter;
+use App\Services\GroundedBusinessAnalyzer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -91,6 +92,22 @@ class AnalysisController extends Controller
         }
 
         return response()->json($presenter->present($job));
+    }
+
+    public function regenerate(Request $request, string $analysisId, GroundedBusinessAnalyzer $analyzer, AnalysisReportPresenter $presenter): JsonResponse
+    {
+        $job = $this->owned($request, $analysisId);
+        if (! in_array($job->state, [AnalysisState::Completed, AnalysisState::PartiallyCompleted], true) || $job->report === null) {
+            return $this->error($request, 'conflict', 'The analysis report is not available.', 409);
+        }
+        $validated = $request->validate([
+            'user_context' => ['present', 'array', 'max:20'],
+            'user_context.*' => ['string', 'max:500'],
+        ]);
+        $job->forceFill(['user_context' => array_values($validated['user_context'])])->save();
+        $analyzer->analyze($job->report);
+
+        return response()->json($presenter->present($job->refresh()));
     }
 
     private function owned(Request $request, string $publicId): AnalysisJob
