@@ -15,6 +15,7 @@ class IntelligenceOperationsService
         'validation_failures' => ['sanitizer', 'schema'],
         'deletion' => ['pending', 'overdue'],
         'moderation' => ['received', 'reviewing', 'resolved', 'appeals', 'active_blocks', 'notification_failures'],
+        'crawling' => ['queued', 'running', 'paused', 'completed', 'failed', 'robots_blocked', 'verification_expired'],
     ];
 
     /** @return array<string, mixed> */

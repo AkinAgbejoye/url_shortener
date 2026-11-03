@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Contracts\BusinessAnalysisProvider;
+use App\Contracts\CrawlPageFetcher;
+use App\Contracts\DomainControlVerifier;
 use App\Contracts\DomainNameResolver;
 use App\Contracts\ExternalExceptionReporter;
 use App\Contracts\IntelligenceDependencyProbe;
@@ -14,9 +16,11 @@ use App\Metrics\StatsdMetricsExporter;
 use App\Models\ApiKey;
 use App\Reporting\NullExternalExceptionReporter;
 use App\Reporting\SentryExceptionReporter;
+use App\Services\NativeDomainControlVerifier;
 use App\Services\NativeDomainNameResolver;
 use App\Services\PinnedRemotePageTransport;
 use App\Services\RulesOnlyBusinessAnalysisProvider;
+use App\Services\SecureCrawlPageFetcher;
 use App\Services\SystemIntelligenceDependencyProbe;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
@@ -34,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(BusinessAnalysisProvider::class, RulesOnlyBusinessAnalysisProvider::class);
+        $this->app->bind(CrawlPageFetcher::class, SecureCrawlPageFetcher::class);
+        $this->app->bind(DomainControlVerifier::class, NativeDomainControlVerifier::class);
         $this->app->singleton(IntelligenceDependencyProbe::class, SystemIntelligenceDependencyProbe::class);
         $this->app->singleton(DomainNameResolver::class, NativeDomainNameResolver::class);
         $this->app->singleton(RemotePageTransport::class, PinnedRemotePageTransport::class);

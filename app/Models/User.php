@@ -67,4 +67,16 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(AnalysisJob::class, 'owner_id');
     }
+
+    /** @return HasMany<DomainVerification, $this> */
+    public function domainVerifications(): HasMany
+    {
+        return $this->hasMany(DomainVerification::class, 'owner_id');
+    }
+
+    /** @return HasMany<CrawlJob, $this> */
+    public function crawlJobs(): HasMany
+    {
+        return $this->hasMany(CrawlJob::class, 'owner_id');
+    }
 }
