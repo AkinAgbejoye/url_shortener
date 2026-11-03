@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AbuseReportController;
 use App\Http\Controllers\AnalysisReportController;
 use App\Http\Controllers\Api\UrlController;
 use App\Http\Controllers\Api\UrlManagementController;
@@ -12,10 +13,13 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\IntelligenceOperationsController;
+use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\OwnerUrlController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+Route::get('/report-abuse', [AbuseReportController::class, 'create'])->name('abuse-reports.create');
+Route::post('/report-abuse', [AbuseReportController::class, 'store'])->middleware('throttle:abuse-reports')->name('abuse-reports.store');
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('throttle:register');
@@ -66,6 +70,14 @@ Route::middleware('auth')->group(function (): void {
         ->group(function (): void {
             Route::get('/', 'show')->name('account.operations.intelligence');
             Route::get('/data', 'data')->name('account.operations.intelligence.data');
+        });
+    Route::prefix('/account/operations/moderation')
+        ->middleware('intelligence.operator')
+        ->controller(ModerationController::class)
+        ->group(function (): void {
+            Route::get('/', 'index')->name('account.operations.moderation');
+            Route::get('/{abuseReport}/export', 'export')->name('account.operations.moderation.export');
+            Route::post('/{abuseReport}/actions', 'action')->name('account.operations.moderation.action');
         });
 });
 Route::get('/{shortCode}', [UrlController::class, 'redirect']);

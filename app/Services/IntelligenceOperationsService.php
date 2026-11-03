@@ -14,6 +14,7 @@ class IntelligenceOperationsService
         'blocked_destinations' => ['dns', 'private_network', 'unsupported_scheme', 'redirect_policy', 'domain_policy'],
         'validation_failures' => ['sanitizer', 'schema'],
         'deletion' => ['pending', 'overdue'],
+        'moderation' => ['received', 'reviewing', 'resolved', 'appeals', 'active_blocks', 'notification_failures'],
     ];
 
     /** @return array<string, mixed> */
