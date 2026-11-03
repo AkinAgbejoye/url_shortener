@@ -205,7 +205,7 @@ npm run build
 
 The block intentionally contains no install command. Run `composer install --no-interaction --prefer-dist`, `npm ci`, and `npx playwright install chromium` before going offline if those artifacts are not already present. Dependency audits require advisory data and therefore remain an online CI gate.
 
-GitHub Actions runs backend and frontend coverage thresholds, Pint, ESLint, Prettier, dependency audits, and the frontend build on every pull request and push to `main`. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
+GitHub Actions runs the `php-tests`, `js-tests`, `audit`, `e2e`, and fresh-clone `bootstrap` jobs on every pull request and push to `main`. The jobs install from the committed lockfiles, enforce backend and frontend coverage thresholds, run Pint, ESLint, Prettier, dependency audits, build assets, and execute the isolated Playwright suite. The e2e preparation creates and migrates `database/e2e.sqlite`, uses local SQLite/array-cache services, and blocks external HTTP requests, so it needs no live accounts or secrets. Use `npm run format` to apply the JavaScript formatting rules locally. Dependabot checks Composer, npm, and GitHub Actions dependencies weekly, groups routine minor and patch updates by ecosystem, and opens security updates for vulnerable dependencies.
 
 ## Operational notes
 

@@ -105,6 +105,10 @@ class SafePageExtractor
             if (! $document->loadHTML($html, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_COMPACT)) {
                 throw new AcquisitionFailure('malformed_document');
             }
+        } catch (AcquisitionFailure $exception) {
+            throw $exception;
+        } catch (\Throwable) {
+            throw new AcquisitionFailure('malformed_document');
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
