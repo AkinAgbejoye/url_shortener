@@ -27,6 +27,34 @@ jobs:
             - run: composer install --no-interaction --prefer-dist --no-progress
             - run: composer test:coverage
             - run: composer contract
+            - name: Generate backend Clover coverage report
+              run: |
+                  mkdir -p build/coverage
+                  vendor/bin/phpunit --coverage-clover build/coverage/clover.xml
+            - name: Upload backend coverage report
+              uses: actions/upload-artifact@v7
+              with:
+                  name: backend-coverage-clover
+                  path: build/coverage/clover.xml
+                  retention-days: 14
+
+    php-lint:
+        name: PHP code style
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  coverage: none
+                  tools: composer:v2
+            - uses: actions/cache@v4
+              with:
+                  path: ~/.cache/composer
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: ${{ runner.os }}-composer-
+            - run: composer install --no-interaction --prefer-dist --no-progress
+            - run: vendor/bin/pint --test
 
     js-tests:
         name: Lint and build
@@ -45,9 +73,32 @@ jobs:
                   restore-keys: ${{ runner.os }}-node-
             - run: npm ci
             - run: npm run lint
-            - run: npm run format:check
             - run: npm run test:coverage
+            - name: Upload frontend coverage report
+              uses: actions/upload-artifact@v7
+              with:
+                  name: frontend-coverage
+                  path: coverage/frontend/
+                  retention-days: 14
             - run: npm run build
+
+    js-format:
+        name: JavaScript format
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            - uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.npm
+                      node_modules
+                  key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: ${{ runner.os }}-node-
+            - run: npm ci
+            - run: npm run format:check
 
     audit:
         name: Dependency audit

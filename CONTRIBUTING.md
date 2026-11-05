@@ -39,7 +39,10 @@ The active `Protect main quality gates` repository ruleset protects the `main` b
 
 - `Lint and build`
 - `Test`
+- `PHP code style`
+- `JavaScript format`
 - `Dependency audit`
+- `Isolated Playwright e2e`
 - `Fresh-clone bootstrap`
 
 The ruleset blocks force pushes and deletion of `main`. It does not require an approving review because this is currently a single-maintainer repository, but the pull request and passing checks are mandatory.
