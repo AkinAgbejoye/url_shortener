@@ -8,13 +8,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Tests\Support\TestCredentials;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
-
-    private const PASSWORD = 'correct-horse-battery-staple';
 
     public function test_a_visitor_can_register_refresh_an_authenticated_page_and_log_out(): void
     {
@@ -24,22 +23,22 @@ class AuthenticationTest extends TestCase
         $this->post('/register', [
             'name' => 'Ada Lovelace',
             'email' => '  ADA@Example.COM ',
-            'password' => self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
+            'password' => TestCredentials::PASSWORD,
+            'password_confirmation' => TestCredentials::PASSWORD,
         ])->assertRedirect('/account');
 
         $user = User::firstOrFail();
         $this->assertAuthenticatedAs($user);
         $this->assertSame('ada@example.com', $user->email);
-        $this->assertTrue(Hash::check(self::PASSWORD, $user->password));
-        $this->assertNotSame(self::PASSWORD, $user->password);
+        $this->assertTrue(Hash::check(TestCredentials::PASSWORD, $user->password));
+        $this->assertNotSame(TestCredentials::PASSWORD, $user->password);
         $this->assertNotSame($beforeLoginSession, session()->getId());
 
         $this->get('/account')
             ->assertOk()
             ->assertSee('Your account')
             ->assertSee('ada@example.com')
-            ->assertDontSee(self::PASSWORD);
+            ->assertDontSee(TestCredentials::PASSWORD);
 
         $beforeLogoutSession = session()->getId();
         $this->post('/logout')->assertRedirect('/');
@@ -54,13 +53,13 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'owner@example.com',
-            'password' => self::PASSWORD,
+            'password' => TestCredentials::PASSWORD,
         ]);
         $beforeLoginSession = session()->getId();
 
         $this->post('/login', [
             'email' => ' OWNER@Example.COM ',
-            'password' => self::PASSWORD,
+            'password' => TestCredentials::PASSWORD,
         ])->assertRedirect('/account');
 
         $this->assertAuthenticatedAs($user);
@@ -96,8 +95,8 @@ class AuthenticationTest extends TestCase
         $this->from('/register')->post('/register', [
             'name' => 'Grace Hopper',
             'email' => ' TAKEN@example.COM ',
-            'password' => self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
+            'password' => TestCredentials::PASSWORD,
+            'password_confirmation' => TestCredentials::PASSWORD,
         ])->assertRedirect('/register')
             ->assertSessionHasErrors([
                 'email' => 'This email address is already registered.',
@@ -110,7 +109,7 @@ class AuthenticationTest extends TestCase
     {
         User::factory()->create([
             'email' => 'known@example.com',
-            'password' => self::PASSWORD,
+            'password' => TestCredentials::PASSWORD,
         ]);
 
         $knownUserResponse = $this->from('/login')->post('/login', [
@@ -150,8 +149,8 @@ class AuthenticationTest extends TestCase
         $this->from('/register')->post('/register', [
             'name' => 'Limited User',
             'email' => 'limited@example.com',
-            'password' => self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
+            'password' => TestCredentials::PASSWORD,
+            'password_confirmation' => TestCredentials::PASSWORD,
         ])->assertTooManyRequests();
 
         Cache::clear();
