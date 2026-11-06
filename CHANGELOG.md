@@ -28,6 +28,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- CI now exposes dedicated PHP-style and JavaScript-format checks and retains backend and frontend coverage reports for 14 days.
+- Patched Symfony HTTP, routing, and YAML dependencies to resolve the November 2026 security advisories enforced by the dependency-audit gate.
+- Deduplicated shared feature-test credentials into a single fixture.
 - Redirects now reject unavailable links and use versioned cache entries bounded by URL expiration.
 
 ## [0.1.0] - 2026-09-26

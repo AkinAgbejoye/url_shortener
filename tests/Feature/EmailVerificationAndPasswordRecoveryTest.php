@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
+use Tests\Support\TestCredentials;
 use Tests\TestCase;
 
 class EmailVerificationAndPasswordRecoveryTest extends TestCase
@@ -37,8 +38,8 @@ class EmailVerificationAndPasswordRecoveryTest extends TestCase
         $this->post('/register', [
             'name' => 'Ada Lovelace',
             'email' => 'ada@example.com',
-            'password' => 'correct-horse-battery-staple',
-            'password_confirmation' => 'correct-horse-battery-staple',
+            'password' => TestCredentials::PASSWORD,
+            'password_confirmation' => TestCredentials::PASSWORD,
         ])->assertRedirect('/account');
 
         $user = User::firstOrFail();
